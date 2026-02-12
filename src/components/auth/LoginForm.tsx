@@ -3,10 +3,21 @@ import { User, Mail, Lock, UserPlus } from 'lucide-react';
 import { useUser } from '../../contexts/UserContext';
 import { useNavigate } from 'react-router-dom';
 
+// LocalStorage utility
+const getUsersFromStorage = (): Record<string, any> => {
+  try {
+    const data = localStorage.getItem('tamil_ai_users');
+    return data ? JSON.parse(data) : {};
+  } catch {
+    return {};
+  }
+};
+
 export default function LoginForm() {
   const { updateUser } = useUser();
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -16,21 +27,70 @@ export default function LoginForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Create a User object matching your UserContext type
-    const user = {
-      id: Date.now().toString(),
-      name: formData.name || 'Tamil Learner',
-      email: formData.email,
-      level: formData.level,
-      streak: 1,
-      totalPoints: 0,
-      achievements: [],
-      learningPath: ['greetings'],
-      dailyGoal: 15,
-      createdAt: new Date().toISOString(),
-    };
-    updateUser(user);
-    navigate('/');
+    setError(''); // Clear previous errors
+
+    const email = formData.email.trim();
+    const password = formData.password.trim();
+
+    // Validation
+    if (!email || !password) {
+      setError('Please enter email and password');
+      return;
+    }
+
+    const users = getUsersFromStorage();
+    const existingUser = users[email];
+
+    if (isLogin) {
+      // Login mode
+      if (!existingUser) {
+        setError('Email not found. Please sign up first.');
+        return;
+      }
+
+      // Check password
+      if (existingUser.password !== password) {
+        setError('Incorrect password. Please try again.');
+        return;
+      }
+
+      // Login successful - load user data
+      updateUser(existingUser);
+      navigate('/');
+    } else {
+      // Signup mode
+      if (existingUser) {
+        setError('Email already registered. Please sign in instead.');
+        return;
+      }
+
+      if (!formData.name.trim()) {
+        setError('Please enter your name');
+        return;
+      }
+
+      if (password.length < 4) {
+        setError('Password must be at least 4 characters');
+        return;
+      }
+
+      // Create a new user account
+      const newUser = {
+        id: Date.now().toString(),
+        name: formData.name,
+        email: email,
+        password: password,
+        level: formData.level,
+        streak: 1,
+        totalPoints: 0,
+        achievements: [],
+        learningPath: ['greetings'],
+        dailyGoal: 15,
+        createdAt: new Date().toISOString(),
+      };
+      updateUser(newUser);
+      navigate('/');
+    }
   };
 
   return (
@@ -53,6 +113,17 @@ export default function LoginForm() {
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start space-x-3">
+                  <span className="text-xl">⚠️</span>
+                  <div>
+                    <p className="font-medium">Incorrect</p>
+                    <p className="text-sm">{error}</p>
+                  </div>
+                </div>
+              )}
+
               {!isLogin && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
