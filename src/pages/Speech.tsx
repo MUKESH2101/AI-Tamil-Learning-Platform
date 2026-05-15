@@ -74,7 +74,7 @@ const Speech: React.FC = () => {
 
   const playPronunciation = async () => {
     try {
-      const textToSpeak = tamilOutput || currentPhrase.transliteration;
+      const textToSpeak = tamilOutput || currentPhrase.tamil || currentPhrase.transliteration;
       // Check if a Tamil voice is available
       const voices = window.speechSynthesis.getVoices();
       const tamilVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('ta'));

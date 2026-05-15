@@ -18,6 +18,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 // LocalStorage utility functions
 const USERS_STORAGE_KEY = 'tamil_ai_users';
 const SESSIONS_STORAGE_KEY = 'tamil_ai_sessions';
+const CURRENT_USER_KEY = 'tamil_ai_current_user';
 
 const getUsersFromStorage = (): Record<string, User> => {
   try {
@@ -73,6 +74,17 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   useEffect(() => {
     const storedSessions = getSessionsFromStorage();
     setSessions(storedSessions);
+    // Restore current user from storage if present
+    try {
+      const currentEmail = localStorage.getItem(CURRENT_USER_KEY);
+      if (currentEmail) {
+        const users = getUsersFromStorage();
+        const storedUser = users[currentEmail];
+        if (storedUser) setUser(storedUser);
+      }
+    } catch (e) {
+      // ignore
+    }
   }, []);
 
   const updateUser = (newUser: User) => {
@@ -81,6 +93,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const users = getUsersFromStorage();
     users[newUser.email] = newUser;
     saveUsersToStorage(users);
+    try {
+      localStorage.setItem(CURRENT_USER_KEY, newUser.email);
+    } catch (e) {}
   };
 
   const addSession = (session: LearningSession) => {
@@ -136,6 +151,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   const logout = () => {
     setUser(null);
     setSessions([]);
+    try {
+      localStorage.removeItem(CURRENT_USER_KEY);
+    } catch (e) {}
   };
 
   const loadUserByEmail = (email: string): User | null => {
@@ -143,6 +161,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const foundUser = users[email] || null;
     if (foundUser) {
       setUser(foundUser);
+      try {
+        localStorage.setItem(CURRENT_USER_KEY, email);
+      } catch (e) {}
     }
     return foundUser;
   };

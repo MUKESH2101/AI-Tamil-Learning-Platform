@@ -27,7 +27,14 @@ export class SpeechService {
         // Try to select a Tamil voice if available
         if (language === 'ta') {
           const voices = this.speechSynthesis.getVoices();
-          const tamilVoice = voices.find(v => v.lang.toLowerCase().startsWith('ta'));
+          // Prefer voices explicitly marked as Tamil
+          let tamilVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('ta'));
+          // Fallbacks: look for voices with 'tamil' in the name or regional Indian English as last resort
+          if (!tamilVoice) {
+            tamilVoice = voices.find(v => v.name && v.name.toLowerCase().includes('tamil'))
+              || voices.find(v => v.lang && v.lang.toLowerCase().includes('en-in'))
+              || voices.find(v => v.name && (v.name.toLowerCase().includes('india') || v.name.toLowerCase().includes('google')));
+          }
           if (tamilVoice) {
             utterance.voice = tamilVoice;
           }

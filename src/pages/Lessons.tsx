@@ -1,10 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { tamilPhrases } from '../data/phrases';
 import { tamilQuestions } from '../data/questions';
 import { useUser } from '../contexts/UserContext';
 import { 
   BookOpen, 
-  Play, 
   CheckCircle, 
   Lock, 
   Star, 
@@ -31,6 +30,64 @@ interface Lesson {
 }
 
 const Lessons: React.FC = () => {
+  const { user, addPoints, incrementStreak } = useUser();
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [showAnswer, setShowAnswer] = useState(false);
+  const [questionCorrect, setQuestionCorrect] = useState<boolean | null>(null);
+
+  // Generate lessons dynamically from phrase categories to create larger, topic-focused lessons
+  const [lessons, setLessons] = useState<Lesson[]>(() => {
+    // default seed lessons (keeps backward compatibility)
+    return [
+      {
+        id: 'seed-1',
+        title: 'Basic Greetings',
+        description: 'Learn essential Tamil greetings and polite expressions',
+        difficulty: 'beginner',
+        category: 'greetings',
+        phrases: tamilPhrases.filter(p => p.category === 'greetings'),
+        questions: tamilQuestions.filter(q => q.category === 'greetings'),
+        unlocked: true,
+        completed: false,
+        points: 50
+      }
+    ];
+  });
+
+  // Complete a lesson
+  const completeLesson = () => {
+    if (selectedLesson) {
+      addPoints(selectedLesson.points);
+      incrementStreak();
+      toast.success(`Lesson completed! +${selectedLesson.points} points, streak increased!`);
+      // mark lesson completed and unlock next lesson
+      setLessons(prev => {
+        const idx = prev.findIndex(l => l.id === selectedLesson.id);
+        if (idx === -1) return prev;
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], completed: true };
+        if (idx + 1 < updated.length) {
+          updated[idx + 1] = { ...updated[idx + 1], unlocked: true };
+        }
+        return updated;
+      });
+      setSelectedLesson(null);
+      setCurrentStep(0);
+    }
+  };
+
+  // Auto-complete lesson when all steps are done
+  useEffect(() => {
+    if (selectedLesson) {
+      const totalSteps = selectedLesson.phrases.length + selectedLesson.questions.length;
+      if (currentStep >= totalSteps) {
+        completeLesson();
+      }
+    }
+  }, [currentStep, selectedLesson]);
+
   // Go to next step or complete lesson
   const nextStep = () => {
     if (selectedLesson) {
@@ -42,6 +99,7 @@ const Lessons: React.FC = () => {
       }
     }
   };
+
   // Play audio for a phrase
   const playAudio = async (text: string, language: 'en' | 'ta' = 'ta') => {
     try {
@@ -58,99 +116,39 @@ const Lessons: React.FC = () => {
       toast.error('Complete previous lessons to unlock this one');
       return;
     }
+    setSelectedOption(null);
+    setShowAnswer(false);
+    setQuestionCorrect(null);
     setSelectedLesson(lesson);
     setCurrentStep(0);
   };
 
-  // Complete a lesson
-  const completeLesson = () => {
-    if (selectedLesson) {
-      addPoints(selectedLesson.points);
-      incrementStreak();
-      toast.success(`Lesson completed! +${selectedLesson.points} points, streak increased!`);
-      setSelectedLesson(null);
-      setCurrentStep(0);
-    }
-  };
-  const { user, addPoints, incrementStreak } = useUser();
-  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
-  const [currentStep, setCurrentStep] = useState(0);
-  const [lessonProgress, setLessonProgress] = useState<Record<string, number>>({});
+  const generateExpandedLessons = () => {
+    const categories = Array.from(new Set(tamilPhrases.map(p => p.category || 'misc')));
+    const generated: Lesson[] = categories.map((cat, idx) => {
+      const catPhrases = tamilPhrases.filter(p => p.category === cat);
+      // make lesson 'huge' by including related phrases from nearby categories
+      const extra = tamilPhrases.filter(p => p.category !== cat).slice(0, 5);
+      const phrases = [...catPhrases, ...extra];
+      const questions = tamilQuestions.filter(q => q.category === cat).slice(0, 8);
+      const difficulty: Lesson['difficulty'] = phrases.length > 10 ? 'intermediate' : 'beginner';
+      return {
+        id: `gen-${idx + 1}`,
+        title: `${cat.charAt(0).toUpperCase() + cat.slice(1)} Deep Dive`,
+        description: `Comprehensive ${cat} lessons that cover vocabulary, phrases and practice exercises`,
+        difficulty,
+        category: cat,
+        phrases,
+        questions,
+        unlocked: idx === 0,
+        completed: false,
+        points: Math.min(250, phrases.length * 10 + questions.length * 5)
+      };
+    });
 
-  const lessons: Lesson[] = [
-    {
-      id: '1',
-      title: 'Basic Greetings',
-      description: 'Learn essential Tamil greetings and polite expressions',
-      difficulty: 'beginner',
-      category: 'greetings',
-      phrases: tamilPhrases.filter(p => p.category === 'greetings'),
-      questions: tamilQuestions.filter(q => q.category === 'greetings'),
-      unlocked: true,
-      completed: false,
-      points: 50
-    },
-    {
-      id: '2',
-      title: 'Grammar Basics',
-      description: 'Understand Tamil sentence structure, tenses, and grammar rules',
-      difficulty: 'beginner',
-      category: 'grammar',
-      phrases: tamilPhrases.filter(p => p.category === 'grammar'),
-      questions: tamilQuestions.filter(q => q.category === 'grammar'),
-      unlocked: true,
-      completed: false,
-      points: 60
-    },
-    {
-      id: '3',
-      title: 'Conversation Starters',
-      description: 'Practice common Tamil conversations for daily life',
-      difficulty: 'intermediate',
-      category: 'conversation',
-      phrases: tamilPhrases.filter(p => p.category === 'conversation'),
-      questions: tamilQuestions.filter(q => q.category === 'conversation'),
-      unlocked: false,
-      completed: false,
-      points: 70
-    },
-    {
-      id: '4',
-      title: 'Numbers & Counting',
-      description: 'Learn numbers, counting, and related vocabulary in Tamil',
-      difficulty: 'beginner',
-      category: 'numbers',
-      phrases: tamilPhrases.filter(p => p.category === 'numbers'),
-      questions: tamilQuestions.filter(q => q.category === 'numbers'),
-      unlocked: false,
-      completed: false,
-      points: 40
-    },
-    {
-      id: '5',
-      title: 'Food & Dining',
-      description: 'Essential words and phrases for food, eating out, and dining etiquette',
-      difficulty: 'intermediate',
-      category: 'food',
-      phrases: tamilPhrases.filter(p => p.category === 'food'),
-      questions: tamilQuestions.filter(q => q.category === 'food'),
-      unlocked: false,
-      completed: false,
-      points: 60
-    },
-    {
-      id: '6',
-      title: 'Travel & Directions',
-      description: 'Useful Tamil for travel, asking directions, and transportation',
-      difficulty: 'intermediate',
-      category: 'travel',
-      phrases: tamilPhrases.filter(p => p.category === 'travel'),
-      questions: tamilQuestions.filter(q => q.category === 'travel'),
-      unlocked: false,
-      completed: false,
-      points: 60
-    }
-  ];
+    setLessons(generated);
+    toast.success('Expanded lessons generated based on card topics');
+  };
 
     return (
   <div className="min-h-screen bg-white p-4">
@@ -204,6 +202,15 @@ const Lessons: React.FC = () => {
                 <p className="text-2xl font-bold text-gray-800">{user?.level || 'beginner'}</p>
                 <p className="text-sm text-gray-600 capitalize">Your Level</p>
               </div>
+            </div>
+            <div className="mt-6 text-center">
+              <button
+                onClick={generateExpandedLessons}
+                className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                <ArrowRight size={16} className="mr-2" />
+                Generate Expanded Lessons
+              </button>
             </div>
           </motion.div>
 
@@ -317,34 +324,82 @@ const Lessons: React.FC = () => {
                       {(() => {
                         const questionIndex = currentStep - selectedLesson.phrases.length;
                         const question = selectedLesson.questions[questionIndex];
+                        
+                        // Guard: if question doesn't exist, we're past the end
+                        if (!question) {
+                          return <div className="text-center text-gray-600">Lesson completing...</div>;
+                        }
+                        
                         return (
                           <div>
                             <h3 className="text-xl font-semibold text-gray-800 mb-6">
                               {question.question}
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-                              {question.options.map((option, index) => (
-                                <button
-                                  key={index}
-                                  className="p-4 text-left bg-gray-50 hover:bg-blue-50 border border-gray-200 rounded-lg transition-colors"
-                                >
-                                  <span className="font-medium text-blue-600 mr-2">
-                                    {String.fromCharCode(65 + index)}.
-                                  </span>
-                                  {option}
-                                </button>
-                              ))}
-                            </div>
-                            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                              <p className="font-semibold text-green-800 mb-2">Answer:</p>
-                              <p className="text-green-700">
-                                {String.fromCharCode(65 + question.correctAnswer)}. {question.options[question.correctAnswer]}
-                              </p>
-                              <p className="text-green-600 mt-2 text-sm">{question.explanation}</p>
-                            </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+                                      {question.options.map((option, index) => {
+                                        const isSelected = selectedOption === index;
+                                        const reveal = showAnswer;
+                                        const isCorrect = reveal && index === question.correctAnswer;
+                                        const isWrongSelected = reveal && isSelected && !isCorrect;
+                                        return (
+                                          <button
+                                            key={index}
+                                            onClick={() => {
+                                              if (showAnswer) return; // already answered
+                                              setSelectedOption(index);
+                                              setShowAnswer(true);
+                                              const correct = index === question.correctAnswer;
+                                              setQuestionCorrect(correct);
+                                              if (correct) {
+                                                // small delay then advance
+                                                setTimeout(() => {
+                                                  setSelectedOption(null);
+                                                  setShowAnswer(false);
+                                                  setQuestionCorrect(null);
+                                                  setCurrentStep(prev => prev + 1);
+                                                }, 800);
+                                              }
+                                            }}
+                                            className={`p-4 text-left border rounded-lg transition-colors ${isSelected ? 'ring-2 ring-indigo-300' : 'bg-gray-50 hover:bg-blue-50'} ${isCorrect ? 'bg-green-50 border-green-300' : ''} ${isWrongSelected ? 'bg-red-50 border-red-300' : ''}`}
+                                          >
+                                            <span className="font-medium text-blue-600 mr-2">
+                                              {String.fromCharCode(65 + index)}.
+                                            </span>
+                                            {option}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                    {showAnswer && (
+                                      <div className="mt-4">
+                                        {questionCorrect ? (
+                                          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                            <p className="font-semibold text-green-800 mb-2">Correct!</p>
+                                            <p className="text-green-700">{String.fromCharCode(65 + question.correctAnswer)}. {question.options[question.correctAnswer]}</p>
+                                            <p className="text-green-600 mt-2 text-sm">{question.explanation}</p>
+                                          </div>
+                                        ) : (
+                                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                                            <p className="font-semibold text-red-800 mb-2">Incorrect — try again</p>
+                                            <p className="text-red-600 mt-2 text-sm">Select the correct option to continue.</p>
+                                            <div className="mt-3">
+                                              <button
+                                                onClick={() => {
+                                                  // allow retry
+                                                  setSelectedOption(null);
+                                                  setShowAnswer(false);
+                                                  setQuestionCorrect(null);
+                                                }}
+                                                className="px-4 py-2 bg-yellow-400 text-white rounded-lg"
+                                              >Try Again</button>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
                           </div>
                         );
-                      })()}
+                        })()}
                     </div>
                   )}
                 </div>
@@ -373,7 +428,6 @@ const Lessons: React.FC = () => {
         </AnimatePresence>
       </div>
     );
+};
 
-  }
-
-  export default Lessons;
+export default Lessons;
