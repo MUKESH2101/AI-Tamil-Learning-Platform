@@ -26,9 +26,24 @@ const Header: React.FC = () => {
                 <span className="font-semibold">{user.totalPoints}</span>
               </div>
               
-              <div className="text-right">
-                <p className="font-semibold">{user.name}</p>
-                <p className="text-xs text-blue-100 capitalize">{user.level}</p>
+              <div className="flex items-center space-x-3">
+                <div className="text-right">
+                  <p className="font-semibold">{user.name}</p>
+                  <p className="text-xs text-blue-100 capitalize">{user.level}</p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-white/30 border-2 border-white flex items-center justify-center overflow-hidden">
+                  {user.photo ? (
+                    <img 
+                      src={user.photo} 
+                      alt={user.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-sm font-bold text-white">
+                      {user.name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           )}

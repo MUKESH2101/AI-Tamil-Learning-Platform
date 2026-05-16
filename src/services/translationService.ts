@@ -1091,6 +1091,17 @@ export class TranslationService {
     'விலையுயர்ந்த': 'expensive'
   };
 
+  getLessonPhrases() {
+    return Object.entries(this.translations).map(([english, tamil], index) => ({
+      id: `translation-${index + 1}`,
+      english,
+      tamil,
+      transliteration: english,
+      category: 'practice',
+      difficulty: 'beginner' as const
+    }));
+  }
+
   async translateToTamil(text: string): Promise<string> {
     // Try dictionary first
     const lowerText = text.toLowerCase().trim();

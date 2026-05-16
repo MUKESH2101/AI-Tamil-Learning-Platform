@@ -22,6 +22,7 @@ export default function LoginForm() {
     name: '',
     email: '',
     password: '',
+    voiceGender: 'female' as 'male' | 'female',
     level: 'beginner' as const,
   });
 
@@ -80,6 +81,7 @@ export default function LoginForm() {
         name: formData.name,
         email: email,
         password: password,
+        voiceGender: formData.voiceGender,
         level: formData.level,
         streak: 1,
         totalPoints: 0,
@@ -176,6 +178,22 @@ export default function LoginForm() {
                   />
                 </div>
               </div>
+
+              {!isLogin && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Voice
+                  </label>
+                  <select
+                    value={formData.voiceGender}
+                    onChange={(e) => setFormData({ ...formData, voiceGender: e.target.value as 'male' | 'female' })}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  >
+                    <option value="female">Female voice</option>
+                    <option value="male">Male voice</option>
+                  </select>
+                </div>
+              )}
 
               {!isLogin && (
                 <div>

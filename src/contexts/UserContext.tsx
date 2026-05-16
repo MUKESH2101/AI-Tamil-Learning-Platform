@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User, LearningSession } from '../types';
+import { speechService } from '../services/speechService';
 
 interface UserContextType {
   user: User | null;
@@ -88,6 +89,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   }, []);
 
   const updateUser = (newUser: User) => {
+    if (newUser.voiceGender) {
+      speechService.setPreferredVoiceGender(newUser.voiceGender);
+    } else {
+      speechService.setPreferredVoiceFromEmail(newUser.email);
+    }
     setUser(newUser);
     // Save to localStorage
     const users = getUsersFromStorage();
@@ -160,6 +166,11 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
     const users = getUsersFromStorage();
     const foundUser = users[email] || null;
     if (foundUser) {
+      if (foundUser.voiceGender) {
+        speechService.setPreferredVoiceGender(foundUser.voiceGender);
+      } else {
+        speechService.setPreferredVoiceFromEmail(foundUser.email);
+      }
       setUser(foundUser);
       try {
         localStorage.setItem(CURRENT_USER_KEY, email);

@@ -3,6 +3,7 @@ export interface User {
   name: string;
   email: string;
   password: string;
+  voiceGender?: 'male' | 'female';
   level: 'beginner' | 'intermediate' | 'advanced';
   streak: number;
   totalPoints: number;

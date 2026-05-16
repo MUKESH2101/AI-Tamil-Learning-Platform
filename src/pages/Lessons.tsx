@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { tamilPhrases } from '../data/phrases';
 import { tamilQuestions } from '../data/questions';
 import { useUser } from '../contexts/UserContext';
+import { translationService } from '../services/translationService';
 import { 
   BookOpen, 
   CheckCircle, 
@@ -16,6 +17,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { speechService } from '../services/speechService';
 import toast from 'react-hot-toast';
 
+const WORDS_PER_LESSON = 10;
+const QUIZZES_PER_LESSON = 1;
+
 interface Lesson {
   id: string;
   title: string;
@@ -29,6 +33,76 @@ interface Lesson {
   points: number;
 }
 
+const getPhraseKey = (phrase: (typeof tamilPhrases)[number]) =>
+  `${phrase.tamil.trim().toLowerCase()}-${phrase.english.trim().toLowerCase()}`;
+
+const getQuestionKey = (question: (typeof tamilQuestions)[number]) =>
+  question.question.trim().toLowerCase();
+
+const getUniquePhrases = (phrases: typeof tamilPhrases, seen = new Set<string>()) => {
+
+  return phrases.filter((phrase) => {
+    const key = getPhraseKey(phrase);
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+};
+
+const getUniqueQuestions = (questions: typeof tamilQuestions) => {
+  const seen = new Set<string>();
+
+  return questions.filter((question) => {
+    const key = getQuestionKey(question);
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+};
+
+const buildLessonCards = (): Lesson[] => {
+  const phrasePool = getUniquePhrases([
+    ...tamilPhrases,
+    ...translationService.getLessonPhrases()
+  ]);
+  const quizPool = getUniqueQuestions(tamilQuestions);
+  const lessonCount = Math.min(
+    Math.floor(phrasePool.length / WORDS_PER_LESSON),
+    Math.floor(quizPool.length / QUIZZES_PER_LESSON)
+  );
+
+  return Array.from({ length: lessonCount }, (_, idx) => {
+    const phrases = phrasePool.slice(
+      idx * WORDS_PER_LESSON,
+      (idx + 1) * WORDS_PER_LESSON
+    );
+    const questions = quizPool.slice(
+      idx * QUIZZES_PER_LESSON,
+      (idx + 1) * QUIZZES_PER_LESSON
+    );
+    const difficulty: Lesson['difficulty'] = idx < 2 ? 'beginner' : 'intermediate';
+
+    return {
+      id: `lesson-${idx + 1}`,
+      title: `Lesson ${idx + 1}`,
+      description: `${WORDS_PER_LESSON} new words and ${QUIZZES_PER_LESSON} quiz`,
+      difficulty,
+      category: 'practice',
+      phrases,
+      questions,
+      unlocked: idx === 0,
+      completed: false,
+      points: WORDS_PER_LESSON * 10 + QUIZZES_PER_LESSON * 5
+    };
+  });
+};
+
 const Lessons: React.FC = () => {
   const { user, addPoints, incrementStreak } = useUser();
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
@@ -37,24 +111,7 @@ const Lessons: React.FC = () => {
   const [showAnswer, setShowAnswer] = useState(false);
   const [questionCorrect, setQuestionCorrect] = useState<boolean | null>(null);
 
-  // Generate lessons dynamically from phrase categories to create larger, topic-focused lessons
-  const [lessons, setLessons] = useState<Lesson[]>(() => {
-    // default seed lessons (keeps backward compatibility)
-    return [
-      {
-        id: 'seed-1',
-        title: 'Basic Greetings',
-        description: 'Learn essential Tamil greetings and polite expressions',
-        difficulty: 'beginner',
-        category: 'greetings',
-        phrases: tamilPhrases.filter(p => p.category === 'greetings'),
-        questions: tamilQuestions.filter(q => q.category === 'greetings'),
-        unlocked: true,
-        completed: false,
-        points: 50
-      }
-    ];
-  });
+  const [lessons, setLessons] = useState<Lesson[]>(buildLessonCards);
 
   // Complete a lesson
   const completeLesson = () => {
@@ -124,30 +181,8 @@ const Lessons: React.FC = () => {
   };
 
   const generateExpandedLessons = () => {
-    const categories = Array.from(new Set(tamilPhrases.map(p => p.category || 'misc')));
-    const generated: Lesson[] = categories.map((cat, idx) => {
-      const catPhrases = tamilPhrases.filter(p => p.category === cat);
-      // make lesson 'huge' by including related phrases from nearby categories
-      const extra = tamilPhrases.filter(p => p.category !== cat).slice(0, 5);
-      const phrases = [...catPhrases, ...extra];
-      const questions = tamilQuestions.filter(q => q.category === cat).slice(0, 8);
-      const difficulty: Lesson['difficulty'] = phrases.length > 10 ? 'intermediate' : 'beginner';
-      return {
-        id: `gen-${idx + 1}`,
-        title: `${cat.charAt(0).toUpperCase() + cat.slice(1)} Deep Dive`,
-        description: `Comprehensive ${cat} lessons that cover vocabulary, phrases and practice exercises`,
-        difficulty,
-        category: cat,
-        phrases,
-        questions,
-        unlocked: idx === 0,
-        completed: false,
-        points: Math.min(250, phrases.length * 10 + questions.length * 5)
-      };
-    });
-
-    setLessons(generated);
-    toast.success('Expanded lessons generated based on card topics');
+    setLessons(buildLessonCards());
+    toast.success('Lesson cards regenerated with 10 unique words and 1 unique quiz each');
   };
 
     return (
