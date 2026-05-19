@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { UserProvider } from './contexts/UserContext';
 import { Toaster } from 'react-hot-toast';
 
@@ -9,6 +9,7 @@ import Navigation from './components/Navigation';
 
 import Home from './pages/Home';
 import LoginForm from './components/auth/LoginForm';
+import ResetPassword from './components/auth/ResetPassword';
 import { useUser } from './contexts/UserContext';
 import Chat from './pages/Chat';
 import Lessons from './pages/Lessons';
@@ -23,6 +24,16 @@ import Games from './pages/Games';
 
 function AppContent() {
   const { user } = useUser();
+  const location = useLocation();
+
+  if (location.pathname === '/reset-password') {
+    return (
+      <Routes>
+        <Route path="/reset-password" element={<ResetPassword />} />
+      </Routes>
+    );
+  }
+
   if (!user) {
     return <LoginForm />;
   }

@@ -1,58 +1,973 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowLeft,
+  BadgeCheck,
+  Brain,
+  CheckCircle2,
+  Clock3,
+  Gamepad2,
+  Headphones,
+  Keyboard,
+  Lock,
+  Mic,
+  Play,
+  Puzzle,
+  RotateCcw,
+  Sparkles,
+  Trophy,
+  XCircle,
+} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { useUser } from '../contexts/UserContext';
+
+type GameId = 'quiz' | 'word-search' | 'typing-sprint' | 'sentence-builder' | 'listening-match' | 'pronunciation-lab';
+type GameStatus = 'Available' | 'Coming Soon';
+
+type Game = {
+  id: GameId;
+  title: string;
+  subtitle: string;
+  description: string;
+  icon: React.ElementType;
+  accent: string;
+  level: string;
+  duration: string;
+  points: number;
+  status: GameStatus;
+};
+
+type QuizQuestion = {
+  id: string;
+  question: string;
+  options: string[];
+  answer: number;
+  explanation: string;
+};
+
+type WordTile = {
+  tamil: string;
+  meaning: string;
+  target: boolean;
+};
+
+type TypingPrompt = {
+  tamil: string;
+  answer: string;
+  hint: string;
+};
+
+type StoredGameStats = {
+  streak: number;
+  gamesCompleted: number;
+  lastCompletedAt: string | null;
+};
+
+type StoredQuizRotation = {
+  hourKey: string;
+  questionIds: string[];
+  usedQuestionIds: string[];
+};
+
+type StoredGameCooldown = {
+  openedAt: string;
+  completedAt: string;
+  unlockAt: string;
+};
+
+type StoredGameCooldowns = Partial<Record<GameId, StoredGameCooldown>>;
+
+const GAME_STATS_STORAGE_KEY = 'tamil_ai_game_stats';
+const GAME_COOLDOWNS_STORAGE_KEY = 'tamil_ai_game_cooldowns';
+const QUIZ_ROTATION_STORAGE_KEY = 'tamil_ai_quiz_rotation';
+const QUIZ_QUESTIONS_PER_HOUR = 4;
+const GAME_COOLDOWN_MS = 60 * 60 * 1000;
+
+const games: Game[] = [
+  {
+    id: 'quiz',
+    title: 'Tamil Quiz',
+    subtitle: 'Vocabulary and meaning',
+    description: 'Answer quick multiple-choice questions and strengthen everyday Tamil words.',
+    icon: Brain,
+    accent: 'bg-blue-500',
+    level: 'Beginner',
+    duration: '5 min',
+    points: 40,
+    status: 'Available',
+  },
+  {
+    id: 'word-search',
+    title: 'Word Search',
+    subtitle: 'Find hidden Tamil words',
+    description: 'Scan the board, select the target words, and build better spelling memory.',
+    icon: Puzzle,
+    accent: 'bg-emerald-500',
+    level: 'Beginner',
+    duration: '7 min',
+    points: 55,
+    status: 'Available',
+  },
+  {
+    id: 'typing-sprint',
+    title: 'Typing Sprint',
+    subtitle: 'Speed and accuracy',
+    description: 'Type the English meaning for Tamil prompts and check your accuracy.',
+    icon: Keyboard,
+    accent: 'bg-orange-500',
+    level: 'Intermediate',
+    duration: '6 min',
+    points: 60,
+    status: 'Available',
+  },
+  {
+    id: 'sentence-builder',
+    title: 'Sentence Builder',
+    subtitle: 'Grammar practice',
+    description: 'Arrange words into natural Tamil sentences and learn structure by doing.',
+    icon: BadgeCheck,
+    accent: 'bg-teal-500',
+    level: 'Intermediate',
+    duration: '8 min',
+    points: 70,
+    status: 'Coming Soon',
+  },
+  {
+    id: 'listening-match',
+    title: 'Listening Match',
+    subtitle: 'Audio comprehension',
+    description: 'Listen carefully and choose the correct word, phrase, or English meaning.',
+    icon: Headphones,
+    accent: 'bg-indigo-500',
+    level: 'All levels',
+    duration: '5 min',
+    points: 45,
+    status: 'Coming Soon',
+  },
+  {
+    id: 'pronunciation-lab',
+    title: 'Pronunciation Lab',
+    subtitle: 'Speak and improve',
+    description: 'Practice Tamil sounds and prepare for instant speaking feedback activities.',
+    icon: Mic,
+    accent: 'bg-rose-500',
+    level: 'Advanced',
+    duration: '10 min',
+    points: 80,
+    status: 'Coming Soon',
+  },
+];
+
+const quizQuestions: QuizQuestion[] = [
+  {
+    id: 'vanakkam-meaning',
+    question: 'What does "Vanakkam" mean?',
+    options: ['Thank you', 'Hello', 'Water', 'Good night'],
+    answer: 1,
+    explanation: 'Vanakkam is a respectful Tamil greeting.',
+  },
+  {
+    id: 'nandri-word',
+    question: 'Which word means "Thank you"?',
+    options: ['Nandri', 'Paal', 'Veedu', 'Poo'],
+    answer: 0,
+    explanation: 'Nandri means thank you.',
+  },
+  {
+    id: 'water-word',
+    question: 'What is the Tamil word for water?',
+    options: ['Veedu', 'Neer', 'Maram', 'Nila'],
+    answer: 1,
+    explanation: 'Neer means water.',
+  },
+  {
+    id: 'amma-meaning',
+    question: 'What does "Amma" mean?',
+    options: ['Father', 'Mother', 'Friend', 'Teacher'],
+    answer: 1,
+    explanation: 'Amma means mother.',
+  },
+  {
+    id: 'veedu-meaning',
+    question: 'What does "Veedu" mean?',
+    options: ['House', 'Book', 'Rain', 'Milk'],
+    answer: 0,
+    explanation: 'Veedu means house or home.',
+  },
+  {
+    id: 'poo-meaning',
+    question: 'What does "Poo" mean?',
+    options: ['Tree', 'Flower', 'Day', 'Stone'],
+    answer: 1,
+    explanation: 'Poo means flower.',
+  },
+  {
+    id: 'maram-meaning',
+    question: 'What does "Maram" mean?',
+    options: ['Tree', 'Moon', 'Water', 'Mother'],
+    answer: 0,
+    explanation: 'Maram means tree.',
+  },
+  {
+    id: 'nila-meaning',
+    question: 'What does "Nila" mean?',
+    options: ['Rain', 'Moon', 'House', 'Hello'],
+    answer: 1,
+    explanation: 'Nila means moon.',
+  },
+  {
+    id: 'paal-meaning',
+    question: 'What does "Paal" mean?',
+    options: ['Milk', 'Stone', 'Flower', 'Thanks'],
+    answer: 0,
+    explanation: 'Paal means milk.',
+  },
+  {
+    id: 'mazhai-meaning',
+    question: 'What does "Mazhai" mean?',
+    options: ['Day', 'Rain', 'Tree', 'Book'],
+    answer: 1,
+    explanation: 'Mazhai means rain.',
+  },
+  {
+    id: 'kal-meaning',
+    question: 'What does "Kal" mean?',
+    options: ['Stone', 'Water', 'Home', 'Moon'],
+    answer: 0,
+    explanation: 'Kal means stone.',
+  },
+  {
+    id: 'naal-meaning',
+    question: 'What does "Naal" mean?',
+    options: ['Milk', 'Day', 'Flower', 'Rain'],
+    answer: 1,
+    explanation: 'Naal means day.',
+  },
+];
+
+const wordTiles: WordTile[] = [
+  { tamil: 'வணக்கம்', meaning: 'Hello', target: true },
+  { tamil: 'நன்றி', meaning: 'Thanks', target: true },
+  { tamil: 'நீர்', meaning: 'Water', target: true },
+  { tamil: 'அம்மா', meaning: 'Mother', target: true },
+  { tamil: 'வீடு', meaning: 'House', target: true },
+  { tamil: 'பூ', meaning: 'Flower', target: false },
+  { tamil: 'மரம்', meaning: 'Tree', target: false },
+  { tamil: 'நிலா', meaning: 'Moon', target: false },
+  { tamil: 'பால்', meaning: 'Milk', target: false },
+  { tamil: 'கல்', meaning: 'Stone', target: false },
+  { tamil: 'நாள்', meaning: 'Day', target: false },
+  { tamil: 'மழை', meaning: 'Rain', target: false },
+];
+
+const typingPrompts: TypingPrompt[] = [
+  { tamil: 'வணக்கம்', answer: 'hello', hint: 'A greeting' },
+  { tamil: 'நன்றி', answer: 'thank you', hint: 'Used for gratitude' },
+  { tamil: 'நீர்', answer: 'water', hint: 'You drink it' },
+  { tamil: 'வீடு', answer: 'house', hint: 'A place to live' },
+  { tamil: 'அம்மா', answer: 'mother', hint: 'Parent' },
+];
+
+const weeklyStats = [
+  { label: 'Playable games', value: '3', icon: Gamepad2 },
+  { label: 'Points ready', value: '155', icon: Trophy },
+  { label: 'Avg. session', value: '6m', icon: Clock3 },
+];
+
+const normalizeAnswer = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
+
+const getCurrentHourKey = () => {
+  const now = new Date();
+  return `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}`;
+};
+
+const getGameStatsFromStorage = (): StoredGameStats => {
+  try {
+    const data = localStorage.getItem(GAME_STATS_STORAGE_KEY);
+    return data ? JSON.parse(data) : { streak: 0, gamesCompleted: 0, lastCompletedAt: null };
+  } catch {
+    return { streak: 0, gamesCompleted: 0, lastCompletedAt: null };
+  }
+};
+
+const saveGameStatsToStorage = (stats: StoredGameStats) => {
+  localStorage.setItem(GAME_STATS_STORAGE_KEY, JSON.stringify(stats));
+};
+
+const getGameCooldownsFromStorage = (): StoredGameCooldowns => {
+  try {
+    const data = localStorage.getItem(GAME_COOLDOWNS_STORAGE_KEY);
+    return data ? JSON.parse(data) : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveGameCooldownsToStorage = (cooldowns: StoredGameCooldowns) => {
+  localStorage.setItem(GAME_COOLDOWNS_STORAGE_KEY, JSON.stringify(cooldowns));
+};
+
+const pruneExpiredCooldowns = (cooldowns: StoredGameCooldowns) => {
+  const now = Date.now();
+  const activeCooldowns: StoredGameCooldowns = {};
+
+  Object.entries(cooldowns).forEach(([gameId, cooldown]) => {
+    if (cooldown && new Date(cooldown.unlockAt).getTime() > now) {
+      activeCooldowns[gameId as GameId] = cooldown;
+    }
+  });
+
+  return activeCooldowns;
+};
+
+const formatRemainingTime = (unlockAt: string) => {
+  const remainingMs = Math.max(0, new Date(unlockAt).getTime() - Date.now());
+  const minutes = Math.ceil(remainingMs / (60 * 1000));
+
+  if (minutes >= 60) {
+    return '1h';
+  }
+
+  return `${minutes}m`;
+};
+
+const getQuizRotationFromStorage = (): StoredQuizRotation | null => {
+  try {
+    const data = localStorage.getItem(QUIZ_ROTATION_STORAGE_KEY);
+    return data ? JSON.parse(data) : null;
+  } catch {
+    return null;
+  }
+};
+
+const saveQuizRotationToStorage = (rotation: StoredQuizRotation) => {
+  localStorage.setItem(QUIZ_ROTATION_STORAGE_KEY, JSON.stringify(rotation));
+};
+
+const getHourlyQuizQuestions = () => {
+  const hourKey = getCurrentHourKey();
+  const questionIds = quizQuestions.map((question) => question.id);
+  const storedRotation = getQuizRotationFromStorage();
+
+  if (storedRotation?.hourKey === hourKey) {
+    const storedQuestions = storedRotation.questionIds
+      .map((id) => quizQuestions.find((question) => question.id === id))
+      .filter((question): question is QuizQuestion => Boolean(question));
+
+    if (storedQuestions.length === QUIZ_QUESTIONS_PER_HOUR) {
+      return storedQuestions;
+    }
+  }
+
+  const usedQuestionIds = storedRotation?.usedQuestionIds.filter((id) => questionIds.includes(id)) || [];
+  const availableQuestionIds = questionIds.filter((id) => !usedQuestionIds.includes(id));
+  const pool = availableQuestionIds.length >= QUIZ_QUESTIONS_PER_HOUR ? availableQuestionIds : questionIds;
+  const seed = hourKey.split('').reduce((total, char) => total + char.charCodeAt(0), 0);
+  const rotatedPool = [...pool].sort((first, second) => {
+    const firstScore = (first.charCodeAt(0) + seed + first.length) % 97;
+    const secondScore = (second.charCodeAt(0) + seed + second.length) % 97;
+    return firstScore - secondScore;
+  });
+  const nextQuestionIds = rotatedPool.slice(0, QUIZ_QUESTIONS_PER_HOUR);
+  const nextUsedIds = pool === questionIds ? nextQuestionIds : [...usedQuestionIds, ...nextQuestionIds];
+
+  saveQuizRotationToStorage({
+    hourKey,
+    questionIds: nextQuestionIds,
+    usedQuestionIds: nextUsedIds,
+  });
+
+  return nextQuestionIds
+    .map((id) => quizQuestions.find((question) => question.id === id))
+    .filter((question): question is QuizQuestion => Boolean(question));
+};
 
 const Games: React.FC = () => {
-  return (
-  <div className="min-h-screen bg-gradient-to-br from-pink-100 via-purple-100 to-blue-100 p-6">
-  <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 mb-4 text-center drop-shadow-lg">Tamil Knowledge Games</h1>
-  <p className="mb-8 text-center text-lg text-gray-700 font-medium">Play games to improve your Tamil vocabulary, grammar, and comprehension skills!</p>
+  const { addPoints } = useUser();
+  const [activeGame, setActiveGame] = useState<GameId | null>(null);
+  const [activeGameOpenedAt, setActiveGameOpenedAt] = useState<string | null>(null);
+  const [sessionPoints, setSessionPoints] = useState(0);
+  const [gameStats, setGameStats] = useState<StoredGameStats>(() => getGameStatsFromStorage());
+  const [gameCooldowns, setGameCooldowns] = useState<StoredGameCooldowns>(() => pruneExpiredCooldowns(getGameCooldownsFromStorage()));
+  const [, setCooldownTick] = useState(0);
 
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Tamil Quiz Game */}
-  <div className="bg-gradient-to-br from-blue-200 via-blue-300 to-purple-200 rounded-2xl p-6 flex flex-col items-center shadow-xl border transition-transform duration-200 hover:scale-105 hover:cursor-pointer">
-  <h2 className="text-2xl font-bold mb-2 text-blue-800">Quiz Game</h2>
-          <p className="mb-4 text-center">Test your Tamil knowledge with fun multiple-choice questions. Improve your vocabulary, grammar, and comprehension by playing quizzes!</p>
-          <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold shadow-md" disabled>Start Quiz (Coming Soon)</button>
-        </div>
+  useEffect(() => {
+    saveGameCooldownsToStorage(gameCooldowns);
+  }, [gameCooldowns]);
 
-        {/* Tamil Word Search Game (like Jalebi) */}
-  <div className="bg-gradient-to-br from-blue-200 via-blue-300 to-purple-200 rounded-2xl p-6 flex flex-col items-center shadow-xl border transition-transform duration-200 hover:scale-105 hover:cursor-pointer">
-  <h2 className="text-2xl font-bold mb-2 text-blue-800">Word Search</h2>
-          <p className="mb-4 text-center">Find hidden Tamil words in a grid, just like the Jalebi game! Sharpen your observation and spelling skills while having fun.</p>
-          <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold shadow-md" disabled>Play Word Search (Coming Soon)</button>
-        </div>
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setCooldownTick((current) => current + 1);
+      setGameCooldowns((current) => pruneExpiredCooldowns(current));
+    }, 30 * 1000);
 
-        {/* Tamil Typing Game */}
-  <div className="bg-gradient-to-br from-blue-200 via-blue-300 to-blue-400 rounded-2xl p-6 flex flex-col items-center shadow-xl border transition-transform duration-200 hover:scale-105 hover:cursor-pointer">
-  <h2 className="text-2xl font-bold mb-2 text-blue-800">Typing Game</h2>
-          <p className="mb-4 text-center">Practice typing Tamil words and sentences quickly and accurately. Great for improving your Tamil keyboard skills!</p>
-          <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold shadow-md" disabled>Start Typing (Coming Soon)</button>
-        </div>
+    return () => window.clearInterval(timer);
+  }, []);
 
-        {/* Tamil Sentence Builder Game */}
-  <div className="bg-gradient-to-br from-blue-200 via-blue-300 to-blue-400 rounded-2xl p-6 flex flex-col items-center shadow-xl border transition-transform duration-200 hover:scale-105 hover:cursor-pointer">
-  <h2 className="text-2xl font-bold mb-2 text-blue-800">Sentence Builder</h2>
-          <p className="mb-4 text-center">Arrange words to form correct Tamil sentences. Learn grammar and sentence structure by playing!</p>
-          <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold shadow-md" disabled>Build Sentences (Coming Soon)</button>
-        </div>
+  const startGame = (gameId: GameId) => {
+    const game = games.find((item) => item.id === gameId);
+    const cooldown = gameCooldowns[gameId];
 
-        {/* Tamil Listening Game */}
-  <div className="bg-gradient-to-br from-blue-200 via-blue-300 to-blue-400 rounded-2xl p-6 flex flex-col items-center shadow-xl border transition-transform duration-200 hover:scale-105 hover:cursor-pointer">
-  <h2 className="text-2xl font-bold mb-2 text-blue-800">Listening Game</h2>
-          <p className="mb-4 text-center">Listen to Tamil audio and choose the correct meaning or word. Improve your listening and comprehension skills!</p>
-          <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold shadow-md" disabled>Start Listening (Coming Soon)</button>
-        </div>
+    if (game?.status === 'Available' && !cooldown) {
+      setActiveGameOpenedAt(new Date().toISOString());
+      setActiveGame(gameId);
+    }
+  };
 
-        {/* Tamil Pronunciation Game */}
-  <div className="bg-gradient-to-br from-blue-200 via-blue-300 to-blue-400 rounded-2xl p-6 flex flex-col items-center shadow-xl border transition-transform duration-200 hover:scale-105 hover:cursor-pointer">
-  <h2 className="text-2xl font-bold mb-2 text-blue-800">Pronunciation Game</h2>
-          <p className="mb-4 text-center">Practice pronouncing Tamil words and get instant feedback. Perfect your Tamil accent and speaking skills!</p>
-          <button className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-lg font-semibold shadow-md" disabled>Practice Pronunciation (Coming Soon)</button>
-        </div>
+  const completeGame = (gameId: GameId, points: number) => {
+    if (gameCooldowns[gameId]) {
+      return;
+    }
+
+    const openedAt = activeGameOpenedAt || new Date().toISOString();
+    const unlockAt = new Date(new Date(openedAt).getTime() + GAME_COOLDOWN_MS).toISOString();
+
+    setSessionPoints((current) => current + points);
+    setGameCooldowns((current) => ({
+      ...current,
+      [gameId]: {
+        openedAt,
+        completedAt: new Date().toISOString(),
+        unlockAt,
+      },
+    }));
+    setGameStats((current) => {
+      const updated = {
+        streak: current.streak + 1,
+        gamesCompleted: current.gamesCompleted + 1,
+        lastCompletedAt: new Date().toISOString(),
+      };
+      saveGameStatsToStorage(updated);
+      return updated;
+    });
+    addPoints(points);
+  };
+
+  const activeGameTitle = games.find((game) => game.id === activeGame)?.title;
+  const completedCooldownCount = games.filter((game) => gameCooldowns[game.id]).length;
+
+  if (activeGame) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveGame(null);
+                setActiveGameOpenedAt(null);
+              }}
+              className="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-100"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to games
+            </button>
+            <div className="rounded-full border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-bold text-orange-700">
+              Session points: {sessionPoints}
+            </div>
+          </div>
+
+          <div className="mb-6">
+            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Now Playing</p>
+            <h1 className="mt-1 text-3xl font-bold text-slate-950">{activeGameTitle}</h1>
+          </div>
+
+          {activeGame === 'quiz' && <QuizGame onComplete={(points) => completeGame('quiz', points)} />}
+          {activeGame === 'word-search' && <WordSearchGame onComplete={(points) => completeGame('word-search', points)} />}
+          {activeGame === 'typing-sprint' && <TypingSprintGame onComplete={(points) => completeGame('typing-sprint', points)} />}
+        </main>
       </div>
+    );
+  }
 
-  <div className="mt-10 text-gray-500 text-center text-lg font-semibold">More interactive games and real-time Tamil learning activities coming soon!</div>
+  return (
+    <div className="min-h-screen bg-slate-50">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="mb-8 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"
+        >
+          <div className="grid gap-6 p-6 lg:grid-cols-[1.6fr_1fr] lg:p-8">
+            <div className="flex flex-col justify-center">
+              <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-sm font-semibold text-orange-700">
+                <Sparkles className="h-4 w-4" />
+                Practice through play
+              </div>
+              <h1 className="text-3xl font-bold tracking-normal text-slate-950 sm:text-4xl">
+                Tamil Knowledge Games
+              </h1>
+              <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
+                Three games are live now: quiz, word search, and typing sprint. Complete a game once, then it reopens one hour after you started that round.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                    Daily Challenge
+                  </p>
+                  <h2 className="mt-1 text-xl font-bold text-slate-900">Finish all 3 games</h2>
+                </div>
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500 text-white">
+                  <Puzzle className="h-6 w-6" />
+                </div>
+              </div>
+              <p className="text-sm leading-6 text-slate-600">
+                Completed games show a recharge timer. Come back when the timer ends to play again.
+              </p>
+              <div className="mt-5 h-2 overflow-hidden rounded-full bg-slate-200">
+                <div className="h-full w-3/5 rounded-full bg-emerald-500" />
+              </div>
+              <div className="mt-3 flex items-center justify-between text-sm font-medium text-slate-600">
+                <span>Completed now</span>
+                <span>{completedCooldownCount} of 3</span>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+
+        <section className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            ...weeklyStats,
+            { label: 'Game streak', value: gameStats.streak.toString(), icon: Sparkles },
+          ].map(({ label, value, icon: Icon }) => (
+            <div key={label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-500">{label}</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-950">{value}</p>
+                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+                  <Icon className="h-5 w-5" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </section>
+
+        <section>
+          <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-2xl font-bold text-slate-950">Game Library</h2>
+              <p className="mt-1 text-sm text-slate-600">Choose an available game. Completed games reopen after their one-hour recharge.</p>
+            </div>
+            <span className="w-fit rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-semibold text-slate-600">
+              3 live games
+            </span>
+          </div>
+
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {games.map((game, index) => {
+              const cooldown = gameCooldowns[game.id];
+              const isCompleted = Boolean(cooldown);
+              const isPlayable = game.status === 'Available' && !isCompleted;
+              const statusLabel = isCompleted ? 'Completed' : game.status;
+              const buttonLabel = isCompleted && cooldown
+                ? `Reopens in ${formatRemainingTime(cooldown.unlockAt)}`
+                : isPlayable
+                  ? 'Play Now'
+                  : 'Launch Soon';
+
+              return (
+                <motion.article
+                  key={game.title}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, delay: index * 0.05 }}
+                  className={`group flex min-h-[260px] flex-col rounded-xl border bg-white p-5 shadow-sm transition ${
+                    isCompleted
+                      ? 'border-amber-200 ring-2 ring-amber-100'
+                      : 'border-slate-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-md'
+                  }`}
+                >
+                  <div className="mb-5 flex items-start justify-between gap-4">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl text-white ${game.accent}`}>
+                      <game.icon className="h-6 w-6" />
+                    </div>
+                    <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${
+                      isCompleted
+                        ? 'border-amber-200 bg-amber-50 text-amber-700'
+                        : game.status === 'Available'
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-600'
+                    }`}
+                    >
+                      {isCompleted ? <Trophy className="h-3.5 w-3.5" /> : game.status === 'Available' ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+                      {statusLabel}
+                    </span>
+                  </div>
+
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-slate-500">{game.subtitle}</p>
+                    <h3 className="mt-1 text-xl font-bold text-slate-950">{game.title}</h3>
+                    <p className="mt-3 text-sm leading-6 text-slate-600">{game.description}</p>
+                    {isCompleted && cooldown && (
+                      <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-amber-800">
+                        Great run! This game is recharging until {new Date(cooldown.unlockAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-5 grid grid-cols-3 gap-2 border-t border-slate-100 pt-4 text-sm">
+                    <div>
+                      <p className="text-slate-400">Level</p>
+                      <p className="mt-1 font-semibold text-slate-700">{game.level}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400">Time</p>
+                      <p className="mt-1 font-semibold text-slate-700">{game.duration}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400">Points</p>
+                      <p className="mt-1 font-semibold text-slate-700">{game.points}</p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={!isPlayable}
+                    onClick={() => startGame(game.id)}
+                    className={`mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg px-4 text-sm font-bold transition ${
+                      isPlayable
+                        ? 'bg-slate-950 text-white hover:bg-slate-800'
+                        : isCompleted
+                          ? 'bg-amber-100 text-amber-700 disabled:cursor-not-allowed'
+                          : 'bg-slate-100 text-slate-500 disabled:cursor-not-allowed'
+                    }`}
+                  >
+                    {isPlayable ? <Play className="h-4 w-4" /> : isCompleted ? <Trophy className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                    {buttonLabel}
+                  </button>
+                </motion.article>
+              );
+            })}
+          </div>
+        </section>
+      </main>
     </div>
   );
 };
+
+const QuizGame: React.FC<{ onComplete: (points: number) => void }> = ({ onComplete }) => {
+  const [hourKey, setHourKey] = useState(() => getCurrentHourKey());
+  const currentQuestions = useMemo(() => getHourlyQuizQuestions(), [hourKey]);
+  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [submitted, setSubmitted] = useState(false);
+  const score = currentQuestions.reduce((total, question, index) => total + (answers[index] === question.answer ? 1 : 0), 0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const latestHourKey = getCurrentHourKey();
+      if (latestHourKey !== hourKey) {
+        setHourKey(latestHourKey);
+        setAnswers({});
+        setSubmitted(false);
+      }
+    }, 60 * 1000);
+
+    return () => window.clearInterval(timer);
+  }, [hourKey]);
+
+  const submit = () => {
+    if (!submitted) {
+      onComplete(score * 10);
+    }
+    setSubmitted(true);
+  };
+
+  const reset = () => {
+    setAnswers({});
+    setSubmitted(false);
+  };
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <GameHeader
+        title="Quiz Round"
+        description="Choose the correct answer. This question set refreshes once every hour without repeating used questions until the bank is complete."
+        action={submitted ? null : <ResetButton onClick={reset} />}
+      />
+      <div className="space-y-5">
+        {currentQuestions.map((question, questionIndex) => (
+          <div key={question.question} className="rounded-xl border border-slate-200 p-4">
+            <p className="font-bold text-slate-950">{questionIndex + 1}. {question.question}</p>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {question.options.map((option, optionIndex) => {
+                const selected = answers[questionIndex] === optionIndex;
+                const correct = submitted && optionIndex === question.answer;
+                const wrong = submitted && selected && optionIndex !== question.answer;
+
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => !submitted && setAnswers({ ...answers, [questionIndex]: optionIndex })}
+                    className={`min-h-12 rounded-lg border px-4 py-3 text-left text-sm font-semibold transition ${
+                      correct
+                        ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                        : wrong
+                          ? 'border-red-300 bg-red-50 text-red-700'
+                          : selected
+                            ? 'border-blue-300 bg-blue-50 text-blue-800'
+                            : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
+            {submitted && (
+              <p className="mt-3 text-sm font-medium text-slate-600">{question.explanation}</p>
+            )}
+          </div>
+        ))}
+      </div>
+      <GameFooter
+        disabled={Object.keys(answers).length !== currentQuestions.length || submitted}
+        label={submitted ? `Score: ${score}/${currentQuestions.length}` : 'Submit Quiz'}
+        onClick={submit}
+      />
+      {submitted && (
+        <ResultBanner
+          type="success"
+          title="Quiz conquered"
+          text="Nice work. This game is marked completed and will reopen one hour after this round started."
+        />
+      )}
+    </section>
+  );
+};
+
+const WordSearchGame: React.FC<{ onComplete: (points: number) => void }> = ({ onComplete }) => {
+  const targetCount = wordTiles.filter((tile) => tile.target).length;
+  const [selected, setSelected] = useState<string[]>([]);
+  const [mistakes, setMistakes] = useState(0);
+  const [completed, setCompleted] = useState(false);
+  const foundCount = selected.length;
+
+  const shuffledTiles = useMemo(() => wordTiles, []);
+
+  const selectTile = (tile: WordTile) => {
+    if (completed || selected.includes(tile.tamil)) {
+      return;
+    }
+
+    if (!tile.target) {
+      setMistakes((current) => current + 1);
+      return;
+    }
+
+    const nextSelected = [...selected, tile.tamil];
+    setSelected(nextSelected);
+
+    if (nextSelected.length === targetCount) {
+      setCompleted(true);
+      onComplete(Math.max(10, 55 - mistakes * 5));
+    }
+  };
+
+  const reset = () => {
+    setSelected([]);
+    setMistakes(0);
+    setCompleted(false);
+  };
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <GameHeader
+        title="Word Search Board"
+        description="Find these target words: Vanakkam, Nandri, Neer, Amma, and Veedu."
+        action={completed ? null : <ResetButton onClick={reset} />}
+      />
+      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        <StatusPill label="Found" value={`${foundCount}/${targetCount}`} />
+        <StatusPill label="Mistakes" value={mistakes.toString()} />
+        <StatusPill label="Reward" value="Up to 55 pts" />
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {shuffledTiles.map((tile) => {
+          const isFound = selected.includes(tile.tamil);
+          return (
+            <button
+              key={`${tile.tamil}-${tile.meaning}`}
+              type="button"
+              onClick={() => selectTile(tile)}
+              className={`min-h-24 rounded-xl border p-3 text-center transition ${
+                isFound
+                  ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                  : 'border-slate-200 bg-slate-50 text-slate-800 hover:border-emerald-200 hover:bg-emerald-50'
+              }`}
+            >
+              <span className="block text-xl font-bold">{tile.tamil}</span>
+              <span className="mt-1 block text-xs font-semibold text-slate-500">{tile.meaning}</span>
+            </button>
+          );
+        })}
+      </div>
+      {completed && (
+        <ResultBanner
+          type="success"
+          title="Board cleared"
+          text={`You completed the board with ${mistakes} mistake${mistakes === 1 ? '' : 's'}. This game will reopen one hour after this round started.`}
+        />
+      )}
+    </section>
+  );
+};
+
+const TypingSprintGame: React.FC<{ onComplete: (points: number) => void }> = ({ onComplete }) => {
+  const [promptIndex, setPromptIndex] = useState(0);
+  const [input, setInput] = useState('');
+  const [correct, setCorrect] = useState(0);
+  const [feedback, setFeedback] = useState<'correct' | 'wrong' | ''>('');
+  const [completed, setCompleted] = useState(false);
+  const prompt = typingPrompts[promptIndex];
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (completed) {
+      return;
+    }
+
+    const isCorrect = normalizeAnswer(input) === prompt.answer;
+    const nextCorrect = correct + (isCorrect ? 1 : 0);
+    setCorrect(nextCorrect);
+    setFeedback(isCorrect ? 'correct' : 'wrong');
+
+    window.setTimeout(() => {
+      if (promptIndex === typingPrompts.length - 1) {
+        setCompleted(true);
+        onComplete(nextCorrect * 12);
+      } else {
+        setPromptIndex((current) => current + 1);
+        setInput('');
+        setFeedback('');
+      }
+    }, 550);
+  };
+
+  const reset = () => {
+    setPromptIndex(0);
+    setInput('');
+    setCorrect(0);
+    setFeedback('');
+    setCompleted(false);
+  };
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <GameHeader
+        title="Typing Sprint"
+        description="Type the English meaning for each Tamil word. Spelling and spacing matter."
+        action={completed ? null : <ResetButton onClick={reset} />}
+      />
+      <div className="mb-5 grid gap-3 sm:grid-cols-3">
+        <StatusPill label="Prompt" value={`${Math.min(promptIndex + 1, typingPrompts.length)}/${typingPrompts.length}`} />
+        <StatusPill label="Correct" value={correct.toString()} />
+        <StatusPill label="Reward" value="12 pts each" />
+      </div>
+
+      {completed ? (
+        <ResultBanner
+          type="success"
+          title="Typing sprint crushed"
+          text={`You typed ${correct} out of ${typingPrompts.length} meanings correctly. This game will reopen one hour after this round started.`}
+        />
+      ) : (
+        <form onSubmit={submit} className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+          <div className="mb-5 text-center">
+            <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Tamil word</p>
+            <p className="mt-2 text-5xl font-bold text-slate-950">{prompt.tamil}</p>
+            <p className="mt-3 text-sm font-medium text-slate-500">Hint: {prompt.hint}</p>
+          </div>
+          <label className="block text-sm font-bold text-slate-700" htmlFor="typing-answer">
+            English meaning
+          </label>
+          <input
+            id="typing-answer"
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className="mt-2 h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-base font-semibold text-slate-900 outline-none transition focus:border-orange-400 focus:ring-2 focus:ring-orange-100"
+            placeholder="Type your answer"
+            autoComplete="off"
+          />
+          {feedback && (
+            <div className={`mt-3 flex items-center gap-2 text-sm font-bold ${
+              feedback === 'correct' ? 'text-emerald-700' : 'text-red-700'
+            }`}
+            >
+              {feedback === 'correct' ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+              {feedback === 'correct' ? 'Correct' : `Answer: ${prompt.answer}`}
+            </div>
+          )}
+          <button
+            type="submit"
+            disabled={!input.trim()}
+            className="mt-5 inline-flex h-11 w-full items-center justify-center rounded-lg bg-slate-950 px-4 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+          >
+            Check Answer
+          </button>
+        </form>
+      )}
+    </section>
+  );
+};
+
+const GameHeader: React.FC<{ title: string; description: string; action: React.ReactNode }> = ({ title, description, action }) => (
+  <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div>
+      <h2 className="text-2xl font-bold text-slate-950">{title}</h2>
+      <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
+    </div>
+    {action}
+  </div>
+);
+
+const ResetButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-100"
+  >
+    <RotateCcw className="h-4 w-4" />
+    Reset
+  </button>
+);
+
+const StatusPill: React.FC<{ label: string; value: string }> = ({ label, value }) => (
+  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+    <p className="text-sm font-medium text-slate-500">{label}</p>
+    <p className="mt-1 text-xl font-bold text-slate-950">{value}</p>
+  </div>
+);
+
+const GameFooter: React.FC<{ disabled: boolean; label: string; onClick: () => void }> = ({ disabled, label, onClick }) => (
+  <div className="mt-6 flex justify-end">
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-950 px-5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+    >
+      {label}
+    </button>
+  </div>
+);
+
+const ResultBanner: React.FC<{ type: 'success'; title: string; text: string }> = ({ title, text }) => (
+  <div className="mt-6 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
+    <div className="flex items-start gap-3">
+      <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0" />
+      <div>
+        <p className="font-bold">{title}</p>
+        <p className="mt-1 text-sm font-medium">{text}</p>
+      </div>
+    </div>
+  </div>
+);
 
 export default Games;
