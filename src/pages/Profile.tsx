@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useUser } from '../contexts/UserContext';
 import { 
   User as UserIcon, 
@@ -14,8 +14,134 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+type StoredDailyTask = {
+  id: string;
+  type: 'scenario' | 'phrases' | 'roleplay' | 'quiz';
+  title: string;
+  points: number;
+  completed: boolean;
+  completedAt?: string;
+  content?: {
+    phrases?: unknown[];
+  };
+};
+
+type StoredLessonProgress = Record<string, {
+  completed: boolean;
+  unlocked: boolean;
+  completedAt?: string;
+}>;
+
+type StoredGameCooldown = {
+  completedAt: string;
+};
+
+type ProfileActivity = {
+  action: string;
+  time: string;
+  points: number;
+  completedAt: string;
+};
+
+const DAILY_TASK_COUNT = 6;
+const WORDS_PER_LESSON = 10;
+const LESSON_POINTS = 105;
+const GAME_COOLDOWNS_STORAGE_KEY = 'tamil_ai_game_cooldowns';
+const GAME_STATS_STORAGE_KEY = 'tamil_ai_game_stats';
+
+const lessonProgressStorageKey = (email?: string) =>
+  `lessonProgress_${email || 'guest'}`;
+
+const dailyTaskStoragePrefix = (email?: string) =>
+  `dailyTasks_${email || 'guest'}_`;
+
+const safeParse = <T,>(value: string | null, fallback: T): T => {
+  if (!value) return fallback;
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+};
+
+const formatRelativeTime = (isoDate: string) => {
+  const diffMs = Date.now() - new Date(isoDate).getTime();
+  const minutes = Math.max(0, Math.floor(diffMs / 60000));
+
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? '' : 's'} ago`;
+};
+
+const toDateKey = (isoDate: string) => new Date(isoDate).toISOString().slice(0, 10);
+
+const getStoredLessonProgress = (email?: string): StoredLessonProgress =>
+  safeParse(localStorage.getItem(lessonProgressStorageKey(email)), {});
+
+const getAllStoredDailyTasks = (email?: string) => {
+  const prefix = dailyTaskStoragePrefix(email);
+  const tasks: Array<StoredDailyTask & { dateKey: string }> = [];
+
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+
+    if (!key?.startsWith(prefix)) continue;
+
+    const dateKey = key.replace(prefix, '');
+    const storedTasks = safeParse<StoredDailyTask[]>(localStorage.getItem(key), []);
+    storedTasks.forEach((task) => tasks.push({ ...task, dateKey }));
+  }
+
+  return tasks;
+};
+
+const getTodaysDailyTasks = (email?: string) => {
+  const todayKey = new Date().toISOString().slice(0, 10);
+  return safeParse<StoredDailyTask[]>(
+    localStorage.getItem(`${dailyTaskStoragePrefix(email)}${todayKey}`),
+    []
+  );
+};
+
+const getCompletedGameActivities = (): ProfileActivity[] => {
+  const cooldowns = safeParse<Record<string, StoredGameCooldown>>(
+    localStorage.getItem(GAME_COOLDOWNS_STORAGE_KEY),
+    {}
+  );
+  const gameStats = safeParse<{ gamesCompleted?: number; lastCompletedAt?: string | null }>(
+    localStorage.getItem(GAME_STATS_STORAGE_KEY),
+    {}
+  );
+
+  const activities = Object.entries(cooldowns)
+    .filter(([, cooldown]) => Boolean(cooldown?.completedAt))
+    .map(([gameId, cooldown]) => ({
+      action: `Completed ${gameId.replace(/-/g, ' ')} game`,
+      time: formatRelativeTime(cooldown.completedAt),
+      points: 0,
+      completedAt: cooldown.completedAt
+    }));
+
+  if (gameStats.lastCompletedAt && !activities.some((activity) => activity.completedAt === gameStats.lastCompletedAt)) {
+    activities.push({
+      action: `Completed ${gameStats.gamesCompleted || 1} game${gameStats.gamesCompleted === 1 ? '' : 's'}`,
+      time: formatRelativeTime(gameStats.lastCompletedAt),
+      points: 0,
+      completedAt: gameStats.lastCompletedAt
+    });
+  }
+
+  return activities;
+};
+
 const Profile: React.FC = () => {
-  const { user, updateUser, logout } = useUser();
+  const { user, sessions, updateUser, logout } = useUser();
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     name: user?.name || '',
@@ -25,7 +151,17 @@ const Profile: React.FC = () => {
   });
   const [photoPreview, setPhotoPreview] = useState<string>(user?.photo || '');
 
-  if (!user) return null;
+  useEffect(() => {
+    if (!user) return;
+
+    setEditForm({
+      name: user.name,
+      dailyGoal: user.dailyGoal,
+      level: user.level,
+      photo: user.photo || ''
+    });
+    setPhotoPreview(user.photo || '');
+  }, [user]);
 
   const handleSave = () => {
     if (user) {
@@ -50,6 +186,95 @@ const Profile: React.FC = () => {
       reader.readAsDataURL(file);
     }
   };
+
+  const profileProgress = useMemo(() => {
+    if (!user) {
+      return {
+        completedLessons: 0,
+        lessonPoints: 0,
+        wordsLearned: 0,
+        daysLearning: 0,
+        todayCompletedTasks: 0,
+        todayTotalTasks: DAILY_TASK_COUNT,
+        todayPoints: 0,
+        todayEstimatedMinutes: 0,
+        recentActivity: [] as ProfileActivity[]
+      };
+    }
+
+    const lessonProgress = getStoredLessonProgress(user.email);
+    const completedLessons = Object.entries(lessonProgress)
+      .filter(([, lesson]) => lesson.completed);
+    const allDailyTasks = getAllStoredDailyTasks(user.email);
+    const completedDailyTasks = allDailyTasks.filter((task) => task.completed);
+    const todaysDailyTasks = getTodaysDailyTasks(user.email);
+    const todaysCompletedTasks = todaysDailyTasks.filter((task) => task.completed);
+    const completedPhraseTasks = completedDailyTasks.filter((task) => task.type === 'phrases');
+    const learnedPhraseCount = completedPhraseTasks.reduce((total, task) => {
+      const phraseCount = Array.isArray(task.content?.phrases) ? task.content.phrases.length : 0;
+      return total + phraseCount;
+    }, 0);
+    const lessonActivities = completedLessons
+      .filter(([, lesson]) => Boolean(lesson.completedAt))
+      .map(([lessonId, lesson]) => ({
+        action: `Completed ${lessonId.replace('-', ' ')}`,
+        time: formatRelativeTime(lesson.completedAt || ''),
+        points: LESSON_POINTS,
+        completedAt: lesson.completedAt || ''
+      }));
+    const dailyActivities = completedDailyTasks
+      .filter((task) => Boolean(task.completedAt))
+      .map((task) => ({
+        action: `Completed ${task.title}`,
+        time: formatRelativeTime(task.completedAt || ''),
+        points: task.points,
+        completedAt: task.completedAt || ''
+      }));
+    const sessionActivities = sessions
+      .filter((session) => session.userId === user.id)
+      .map((session) => {
+        const completedAt = new Date(session.completedAt).toISOString();
+
+        return {
+          action: `Completed ${session.type} session`,
+          time: formatRelativeTime(completedAt),
+          points: session.score,
+          completedAt
+        };
+      });
+    const recentActivity = [
+      ...lessonActivities,
+      ...dailyActivities,
+      ...sessionActivities,
+      ...getCompletedGameActivities()
+    ]
+      .filter((activity) => activity.completedAt)
+      .sort((first, second) => new Date(second.completedAt).getTime() - new Date(first.completedAt).getTime())
+      .slice(0, 6);
+    const activeDates = new Set<string>();
+
+    completedLessons.forEach(([, lesson]) => {
+      if (lesson.completedAt) activeDates.add(toDateKey(lesson.completedAt));
+    });
+    completedDailyTasks.forEach((task) => {
+      activeDates.add(task.completedAt ? toDateKey(task.completedAt) : task.dateKey);
+    });
+    recentActivity.forEach((activity) => activeDates.add(toDateKey(activity.completedAt)));
+
+    return {
+      completedLessons: completedLessons.length,
+      lessonPoints: completedLessons.length * LESSON_POINTS,
+      wordsLearned: completedLessons.length * WORDS_PER_LESSON + learnedPhraseCount,
+      daysLearning: activeDates.size,
+      todayCompletedTasks: todaysCompletedTasks.length,
+      todayTotalTasks: todaysDailyTasks.length || DAILY_TASK_COUNT,
+      todayPoints: todaysCompletedTasks.reduce((total, task) => total + task.points, 0),
+      todayEstimatedMinutes: todaysCompletedTasks.length * 5,
+      recentActivity
+    };
+  }, [sessions, user?.email, user?.id, user?.totalPoints, user?.achievements.length]);
+
+  if (!user) return null;
 
   // Camera capture handler using getUserMedia
   const handleTakePhoto = async () => {
@@ -139,30 +364,28 @@ const Profile: React.FC = () => {
     }
   };
 
-  const achievements = [
-    { id: 'first-lesson', name: 'First Steps', description: 'Completed first lesson', earned: user.achievements.includes('First Lesson') },
-    { id: 'week-streak', name: 'Week Warrior', description: '7-day learning streak', earned: user.achievements.includes('Week Streak') },
-    { id: 'daily-master', name: 'Daily Master', description: 'Completed all daily tasks', earned: user.achievements.includes('Daily Master') },
-    { id: 'quiz-champion', name: 'Quiz Champion', description: 'Perfect quiz score', earned: false },
-    { id: 'pronunciation-pro', name: 'Pronunciation Pro', description: '90%+ speech accuracy', earned: false },
-    { id: 'culture-explorer', name: 'Culture Explorer', description: 'Read 10 cultural insights', earned: false }
-  ];
+  const achievements = user.achievements.map((achievement) => ({
+    id: achievement.toLowerCase().replace(/\s+/g, '-'),
+    name: achievement,
+    description: 'Earned from completed learning activity',
+    earned: true
+  }));
 
   const stats = [
     { label: 'Current Streak', value: user.streak, icon: TrendingUp, color: 'text-orange-600' },
     { label: 'Total Points', value: user.totalPoints, icon: Target, color: 'text-blue-600' },
     { label: 'Achievements', value: user.achievements.length, icon: Award, color: 'text-yellow-600' },
-    { label: 'Days Learning', value: 15, icon: Calendar, color: 'text-green-600' },
-    { label: 'Lessons Completed', value: 8, icon: BookOpen, color: 'text-purple-600' },
-    { label: 'Words Learned', value: 124, icon: BookOpen, color: 'text-pink-600' }
+    { label: 'Days Learning', value: profileProgress.daysLearning, icon: Calendar, color: 'text-green-600' },
+    { label: 'Lessons Completed', value: profileProgress.completedLessons, icon: BookOpen, color: 'text-purple-600' },
+    { label: 'Words Learned', value: profileProgress.wordsLearned, icon: BookOpen, color: 'text-pink-600' }
   ];
 
   const learningPathProgress = [
-    { topic: 'Greetings', progress: 100, total: 10 },
-    { topic: 'Numbers', progress: 80, total: 15 },
-    { topic: 'Family', progress: 60, total: 12 },
-    { topic: 'Food', progress: 30, total: 20 },
-    { topic: 'Travel', progress: 0, total: 18 }
+    { topic: 'Daily Tasks', progress: profileProgress.todayCompletedTasks, total: profileProgress.todayTotalTasks },
+    { topic: 'Daily Goal', progress: Math.min(profileProgress.todayEstimatedMinutes, user.dailyGoal), total: user.dailyGoal },
+    { topic: 'Daily Points', progress: profileProgress.todayPoints, total: 105 },
+    { topic: 'Lessons', progress: profileProgress.completedLessons, total: Math.max(profileProgress.completedLessons, 5) },
+    { topic: 'Achievement Progress', progress: user.achievements.length, total: Math.max(user.achievements.length, 6) }
   ];
 
   return (
@@ -338,8 +561,13 @@ const Profile: React.FC = () => {
               Achievements
             </h2>
             
-            <div className="grid grid-cols-2 gap-3">
-              {achievements.map((achievement, idx) => (
+            {achievements.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-gray-600">
+                Complete lessons, daily tasks, or streak goals to earn achievements.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {achievements.map((achievement) => (
                 <motion.div
                   key={achievement.id}
                   whileHover={{ scale: 1.05 }}
@@ -368,8 +596,9 @@ const Profile: React.FC = () => {
                   </p>
                   {achievement.earned && <span className="text-green-600 font-semibold text-xs">Earned</span>}
                 </motion.div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </motion.div>
 
           {/* Learning Path */}
@@ -390,13 +619,13 @@ const Profile: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium text-gray-800">{topic.topic}</h3>
                     <span className="text-sm text-gray-600">
-                      {Math.floor((topic.progress / topic.total) * 100)}%
+                      {Math.floor((topic.progress / Math.max(topic.total, 1)) * 100)}%
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${(topic.progress / topic.total) * 100}%` }}
+                      animate={{ width: `${Math.min((topic.progress / Math.max(topic.total, 1)) * 100, 100)}%` }}
                       transition={{ duration: 1, delay: 0.2 }}
                       className={`h-full rounded-full ${
                         topic.progress === topic.total 
@@ -426,14 +655,13 @@ const Profile: React.FC = () => {
           </h2>
           
           <div className="space-y-3">
-            {[
-              { action: 'Completed Daily Phrase', time: '2 hours ago', points: 10 },
-              { action: 'Perfect Quiz Score', time: '1 day ago', points: 25 },
-              { action: 'Speech Practice Session', time: '2 days ago', points: 15 },
-              { action: 'Cultural Insight Read', time: '3 days ago', points: 20 }
-            ].map((activity, index) => (
+            {profileProgress.recentActivity.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-gray-600">
+                No completed learning activity yet. Finished lessons and daily tasks will appear here.
+              </div>
+            ) : profileProgress.recentActivity.map((activity, index) => (
               <motion.div
-                key={index}
+                key={`${activity.action}-${activity.completedAt}`}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 * index }}
@@ -444,7 +672,7 @@ const Profile: React.FC = () => {
                   <p className="text-sm text-gray-600">{activity.time}</p>
                 </div>
                 <span className="text-sm font-semibold text-blue-600">
-                  +{activity.points} pts
+                  {activity.points > 0 ? `+${activity.points} pts` : 'Completed'}
                 </span>
               </motion.div>
             ))}

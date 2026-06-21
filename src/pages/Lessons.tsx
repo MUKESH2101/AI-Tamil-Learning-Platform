@@ -30,8 +30,15 @@ interface Lesson {
   questions: typeof tamilQuestions;
   unlocked: boolean;
   completed: boolean;
+  completedAt?: string;
   points: number;
 }
+
+type StoredLessonProgress = Record<string, {
+  completed: boolean;
+  unlocked: boolean;
+  completedAt?: string;
+}>;
 
 const getPhraseKey = (phrase: (typeof tamilPhrases)[number]) =>
   `${phrase.tamil.trim().toLowerCase()}-${phrase.english.trim().toLowerCase()}`;
@@ -103,19 +110,72 @@ const buildLessonCards = (): Lesson[] => {
   });
 };
 
+const lessonProgressStorageKey = (email?: string) =>
+  `lessonProgress_${email || 'guest'}`;
+
+const getStoredLessonProgress = (email?: string): StoredLessonProgress => {
+  try {
+    const data = localStorage.getItem(lessonProgressStorageKey(email));
+    return data ? JSON.parse(data) : {};
+  } catch {
+    return {};
+  }
+};
+
+const saveStoredLessonProgress = (email: string | undefined, lessons: Lesson[]) => {
+  const progress = lessons.reduce<StoredLessonProgress>((result, lesson) => {
+    result[lesson.id] = {
+      completed: lesson.completed,
+      unlocked: lesson.unlocked,
+      completedAt: lesson.completedAt
+    };
+
+    return result;
+  }, {});
+
+  localStorage.setItem(lessonProgressStorageKey(email), JSON.stringify(progress));
+};
+
+const applyStoredLessonProgress = (lessons: Lesson[], email?: string) => {
+  const progress = getStoredLessonProgress(email);
+
+  return lessons.map((lesson, index) => {
+    const storedLesson = progress[lesson.id];
+
+    return {
+      ...lesson,
+      completed: Boolean(storedLesson?.completed),
+      completedAt: storedLesson?.completedAt,
+      unlocked: index === 0 || Boolean(storedLesson?.unlocked) || Boolean(progress[`lesson-${index}`]?.completed)
+    };
+  });
+};
+
 const Lessons: React.FC = () => {
-  const { user, addPoints, incrementStreak } = useUser();
+  const { user, addPoints, incrementStreak, addAchievement } = useUser();
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
   const [questionCorrect, setQuestionCorrect] = useState<boolean | null>(null);
 
-  const [lessons, setLessons] = useState<Lesson[]>(buildLessonCards);
+  const [lessons, setLessons] = useState<Lesson[]>(() => applyStoredLessonProgress(buildLessonCards(), user?.email));
+
+  useEffect(() => {
+    setLessons(applyStoredLessonProgress(buildLessonCards(), user?.email));
+  }, [user?.email]);
 
   // Complete a lesson
   const completeLesson = () => {
     if (selectedLesson) {
+      const existingLesson = lessons.find((lesson) => lesson.id === selectedLesson.id);
+
+      if (existingLesson?.completed) {
+        setSelectedLesson(null);
+        setCurrentStep(0);
+        return;
+      }
+
       addPoints(selectedLesson.points);
       incrementStreak();
       toast.success(`Lesson completed! +${selectedLesson.points} points, streak increased!`);
@@ -124,10 +184,20 @@ const Lessons: React.FC = () => {
         const idx = prev.findIndex(l => l.id === selectedLesson.id);
         if (idx === -1) return prev;
         const updated = [...prev];
-        updated[idx] = { ...updated[idx], completed: true };
+        updated[idx] = { ...updated[idx], completed: true, completedAt: new Date().toISOString() };
         if (idx + 1 < updated.length) {
           updated[idx + 1] = { ...updated[idx + 1], unlocked: true };
         }
+        saveStoredLessonProgress(user?.email, updated);
+
+        if (!prev.some((lesson) => lesson.completed)) {
+          addAchievement('First Lesson');
+        }
+
+        if (updated.filter((lesson) => lesson.completed).length >= 5) {
+          addAchievement('Lesson Builder');
+        }
+
         return updated;
       });
       setSelectedLesson(null);
@@ -173,6 +243,10 @@ const Lessons: React.FC = () => {
       toast.error('Complete previous lessons to unlock this one');
       return;
     }
+    if (lesson.completed) {
+      toast('You already completed this lesson.');
+      return;
+    }
     setSelectedOption(null);
     setShowAnswer(false);
     setQuestionCorrect(null);
@@ -181,7 +255,7 @@ const Lessons: React.FC = () => {
   };
 
   const generateExpandedLessons = () => {
-    setLessons(buildLessonCards());
+    setLessons(applyStoredLessonProgress(buildLessonCards(), user?.email));
     toast.success('Lesson cards regenerated with 10 unique words and 1 unique quiz each');
   };
 

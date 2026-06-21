@@ -48,59 +48,168 @@ interface DailyTask {
   subtitle: string;
   points: number;
   completed: boolean;
+  completedAt?: string;
   content: ScenarioContent | PhrasesContent | RoleplayContent | QuizContent;
 }
 
-const DAILY_TASK_COUNT = 4;
+const DAILY_TASK_COUNT = 6;
+const PHRASES_PER_TASK = 5;
+const PHRASE_TASKS_PER_DAY = 2;
+
+interface TaskAssignmentHistory {
+  scenarios: string[];
+  phraseSets: string[];
+  roleplays: string[];
+  quizzes: string[];
+}
 
 const realWorldScenarios = [
   {
+    id: 'tea-shop',
     place: 'Tea shop',
     goal: 'Order tea, ask the price, and thank the shopkeeper.',
     steps: ['Greet the shopkeeper', 'Ask for one tea', 'Ask how much it costs', 'Say thank you']
   },
   {
+    id: 'bus-stand',
     place: 'Bus stand',
     goal: 'Ask where the bus goes and when it leaves.',
     steps: ['Ask for the destination', 'Ask the time', 'Confirm the stop', 'Say thanks before leaving']
   },
   {
+    id: 'market',
     place: 'Market',
     goal: 'Buy an item politely and ask for a small discount.',
     steps: ['Ask the price', 'Ask if it is fresh', 'Request a discount', 'Ask for a bag']
   },
   {
+    id: 'restaurant',
     place: 'Restaurant',
     goal: 'Ask for a menu, order food, and request the bill.',
     steps: ['Ask for the menu', 'Ask if a dish is vegetarian', 'Order politely', 'Ask for the bill']
   },
   {
+    id: 'clinic',
     place: 'Clinic',
     goal: 'Explain that you are not feeling well and ask for help.',
     steps: ['Say you need a doctor', 'Describe the problem simply', 'Ask how long it will take', 'Thank them']
+  },
+  {
+    id: 'railway-station',
+    place: 'Railway station',
+    goal: 'Ask for a ticket, platform number, and train time.',
+    steps: ['Ask for one ticket', 'Say the destination', 'Ask the platform number', 'Confirm the departure time']
+  },
+  {
+    id: 'pharmacy',
+    place: 'Pharmacy',
+    goal: 'Ask for medicine and understand basic dosage instructions.',
+    steps: ['Greet the pharmacist', 'Say what you need', 'Ask how often to take it', 'Thank them politely']
+  },
+  {
+    id: 'auto-ride',
+    place: 'Auto stand',
+    goal: 'Tell the driver your destination and agree on the fare.',
+    steps: ['Ask if the driver can go there', 'Say the place name', 'Ask the fare', 'Confirm before getting in']
+  },
+  {
+    id: 'library',
+    place: 'Library',
+    goal: 'Ask for a book and learn where to sit quietly.',
+    steps: ['Ask where Tamil books are', 'Ask for help finding one', 'Ask where to sit', 'Say thanks softly']
+  },
+  {
+    id: 'school-office',
+    place: 'School office',
+    goal: 'Ask about class timings and admission details.',
+    steps: ['Introduce yourself', 'Ask about class time', 'Ask what documents are needed', 'Thank the staff']
+  },
+  {
+    id: 'grocery-store',
+    place: 'Grocery store',
+    goal: 'Buy daily essentials and check the total amount.',
+    steps: ['Ask for the items', 'Ask if more stock is available', 'Ask the total price', 'Request a receipt']
+  },
+  {
+    id: 'temple-visit',
+    place: 'Temple',
+    goal: 'Ask about timings and behave respectfully.',
+    steps: ['Ask opening time', 'Ask where to leave footwear', 'Ask if photos are allowed', 'Say thanks respectfully']
   }
 ];
 
 const roleplayPrompts = [
   {
+    id: 'buy-water',
     situation: 'You are in a shop and want to buy a bottle of water.',
     prompt: 'Type what you would say in English before trying it in Tamil.',
     sampleAnswer: 'Excuse me, how much does this water cost?'
   },
   {
+    id: 'ask-atm',
     situation: 'You are lost and need directions to the nearest ATM.',
     prompt: 'Write a polite sentence you can use with a stranger.',
     sampleAnswer: 'Excuse me, where is the nearest ATM?'
   },
   {
+    id: 'request-bill',
     situation: 'You are at a restaurant and want the bill.',
     prompt: 'Write the request you would make to the waiter.',
     sampleAnswer: 'Can I get the bill, please?'
   },
   {
+    id: 'self-intro',
     situation: 'You are meeting someone new and want to introduce yourself.',
     prompt: 'Write one simple introduction sentence.',
     sampleAnswer: 'Hello, my name is Arun.'
+  },
+  {
+    id: 'ask-price',
+    situation: 'You are buying fruit and want to ask the price per kilo.',
+    prompt: 'Write the question you would ask the seller.',
+    sampleAnswer: 'How much is one kilo of bananas?'
+  },
+  {
+    id: 'late-bus',
+    situation: 'Your bus is late and you want to ask when it will arrive.',
+    prompt: 'Write a short polite question.',
+    sampleAnswer: 'When will the bus arrive?'
+  },
+  {
+    id: 'phone-number',
+    situation: 'You need to ask someone for their phone number.',
+    prompt: 'Write the request politely.',
+    sampleAnswer: 'Can you please give me your phone number?'
+  },
+  {
+    id: 'need-help',
+    situation: 'You need help carrying a bag.',
+    prompt: 'Write a simple sentence asking for help.',
+    sampleAnswer: 'Can you please help me with this bag?'
+  },
+  {
+    id: 'appointment-time',
+    situation: 'You are calling a clinic to ask for an appointment time.',
+    prompt: 'Write what you would ask.',
+    sampleAnswer: 'Is there an appointment available today?'
+  },
+  {
+    id: 'wrong-address',
+    situation: 'You reached the wrong address and need clarification.',
+    prompt: 'Write a sentence asking if this is the correct place.',
+    sampleAnswer: 'Is this the correct address?'
+  },
+  {
+    id: 'borrow-pen',
+    situation: 'You need to borrow a pen in class.',
+    prompt: 'Write a polite request.',
+    sampleAnswer: 'Can I borrow your pen for a minute?'
+  },
+  {
+    id: 'ask-language',
+    situation: 'You want to ask whether someone speaks English.',
+    prompt: 'Write one simple question.',
+    sampleAnswer: 'Do you speak English?'
   }
 ];
 
@@ -118,57 +227,131 @@ const getYesterdayKey = () => {
   return toDateKey(date);
 };
 
-const getDailyIndex = (todayKey: string, length: number, offset = 0) => {
-  const seed = todayKey
-    .split('')
-    .reduce((sum, char) => sum + char.charCodeAt(0), 0);
-
-  return (seed + offset) % length;
-};
-
 const taskStorageKey = (todayKey: string, email?: string) =>
   `dailyTasks_${email || 'guest'}_${todayKey}`;
+
+const taskHistoryStorageKey = (email?: string) =>
+  `dailyTaskHistory_${email || 'guest'}`;
 
 const streakStorageKey = (email?: string) =>
   `dailyTaskStreak_${email || 'guest'}`;
 
-const buildDailyTasks = (todayKey: string): DailyTask[] => {
-  const phrasePool = translationService.getLessonPhrases();
-  const scenario = realWorldScenarios[getDailyIndex(todayKey, realWorldScenarios.length)];
-  const roleplay = roleplayPrompts[getDailyIndex(todayKey, roleplayPrompts.length, 3)];
-  const quiz = tamilQuestions[getDailyIndex(todayKey, tamilQuestions.length, 7)];
-  const phraseStart = getDailyIndex(todayKey, phrasePool.length, 11);
-  const phrases = Array.from({ length: 5 }, (_, index) => {
-    const phrase = phrasePool[(phraseStart + index) % phrasePool.length];
+const getEmptyTaskHistory = (): TaskAssignmentHistory => ({
+  scenarios: [],
+  phraseSets: [],
+  roleplays: [],
+  quizzes: []
+});
 
-    return {
+const getTaskHistory = (email?: string): TaskAssignmentHistory => {
+  try {
+    const savedHistory = localStorage.getItem(taskHistoryStorageKey(email));
+    return savedHistory ? { ...getEmptyTaskHistory(), ...JSON.parse(savedHistory) } : getEmptyTaskHistory();
+  } catch {
+    return getEmptyTaskHistory();
+  }
+};
+
+const saveTaskHistory = (email: string | undefined, history: TaskAssignmentHistory) => {
+  localStorage.setItem(taskHistoryStorageKey(email), JSON.stringify(history));
+};
+
+const getIdScore = (id: string, todayKey: string, offset: number) => {
+  const seed = `${todayKey}-${offset}-${id}`;
+  return seed.split('').reduce((sum, char, index) => sum + char.charCodeAt(0) * (index + 1), 0);
+};
+
+const selectUnusedItems = <T extends { id: string }>(
+  pool: T[],
+  usedIds: string[],
+  count: number,
+  todayKey: string,
+  offset: number
+) => {
+  const validUsedIds = usedIds.filter((id) => pool.some((item) => item.id === id));
+  const unusedPool = pool.filter((item) => !validUsedIds.includes(item.id));
+  const isNewCycle = unusedPool.length < count;
+  const sourcePool = isNewCycle ? pool : unusedPool;
+  const selectedItems = [...sourcePool]
+    .sort((first, second) => getIdScore(first.id, todayKey, offset) - getIdScore(second.id, todayKey, offset))
+    .slice(0, count);
+  const selectedIds = selectedItems.map((item) => item.id);
+
+  return {
+    selectedItems,
+    nextUsedIds: isNewCycle ? selectedIds : [...validUsedIds, ...selectedIds]
+  };
+};
+
+const buildPhraseSets = () => {
+  const phrasePool = translationService.getLessonPhrases();
+  const phraseSetCount = Math.floor(phrasePool.length / PHRASES_PER_TASK);
+
+  return Array.from({ length: phraseSetCount }, (_, setIndex) => {
+    const start = setIndex * PHRASES_PER_TASK;
+    const phrases = phrasePool.slice(start, start + PHRASES_PER_TASK).map((phrase) => ({
       english: phrase.english,
       tamil: phrase.tamil,
       transliteration: phrase.transliteration
+    }));
+
+    return {
+      id: `phrase-set-${setIndex + 1}`,
+      title: setIndex === 0 ? 'Useful lines' : `Useful lines ${setIndex + 1}`,
+      phrases
     };
+  });
+};
+
+const buildDailyTasks = (todayKey: string, email?: string): DailyTask[] => {
+  const phraseSets = buildPhraseSets();
+  const quizPool = tamilQuestions.map((question) => ({ ...question, id: `quiz-${question.id}` }));
+  const history = getTaskHistory(email);
+  const selectedScenarios = selectUnusedItems(realWorldScenarios, history.scenarios, 2, todayKey, 0);
+  const selectedPhraseSets = selectUnusedItems(phraseSets, history.phraseSets, PHRASE_TASKS_PER_DAY, todayKey, 20);
+  const selectedRoleplays = selectUnusedItems(roleplayPrompts, history.roleplays, 1, todayKey, 40);
+  const selectedQuizzes = selectUnusedItems(quizPool, history.quizzes, 1, todayKey, 60);
+  const [firstScenario, secondScenario] = selectedScenarios.selectedItems;
+  const [roleplay] = selectedRoleplays.selectedItems;
+  const [quiz] = selectedQuizzes.selectedItems;
+
+  saveTaskHistory(email, {
+    scenarios: selectedScenarios.nextUsedIds,
+    phraseSets: selectedPhraseSets.nextUsedIds,
+    roleplays: selectedRoleplays.nextUsedIds,
+    quizzes: selectedQuizzes.nextUsedIds
   });
 
   return [
     {
-      id: 'scenario',
+      id: `scenario-${firstScenario.id}`,
       type: 'scenario',
-      title: `${scenario.place} mission`,
-      subtitle: scenario.goal,
-      content: scenario,
+      title: `${firstScenario.place} mission`,
+      subtitle: firstScenario.goal,
+      content: firstScenario,
       points: 15,
       completed: false
     },
     {
-      id: 'phrases',
-      type: 'phrases',
-      title: 'Useful lines',
-      subtitle: 'Practice five phrases you can actually use today.',
-      content: { phrases },
-      points: 20,
+      id: `scenario-${secondScenario.id}`,
+      type: 'scenario',
+      title: `${secondScenario.place} mission`,
+      subtitle: secondScenario.goal,
+      content: secondScenario,
+      points: 15,
       completed: false
     },
+    ...selectedPhraseSets.selectedItems.map((phraseSet, index) => ({
+      id: `phrases-${phraseSet.id}`,
+      type: 'phrases',
+      title: index === 0 ? 'Useful lines' : 'More useful lines',
+      subtitle: 'Practice five phrases you can actually use today.',
+      content: { phrases: phraseSet.phrases },
+      points: 20,
+      completed: false
+    } satisfies DailyTask)),
     {
-      id: 'roleplay',
+      id: `roleplay-${roleplay.id}`,
       type: 'roleplay',
       title: 'Speak it out',
       subtitle: roleplay.situation,
@@ -177,7 +360,7 @@ const buildDailyTasks = (todayKey: string): DailyTask[] => {
       completed: false
     },
     {
-      id: 'quiz',
+      id: quiz.id,
       type: 'quiz',
       title: 'One-minute quiz',
       subtitle: 'Answer one question to finish the day.',
@@ -190,7 +373,7 @@ const buildDailyTasks = (todayKey: string): DailyTask[] => {
 
 const Daily: React.FC = () => {
   const { user, addPoints, addAchievement, updateUser } = useUser();
-  const todayKey = toDateKey(new Date());
+  const [todayKey, setTodayKey] = useState(() => toDateKey(new Date()));
   const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([]);
   const [selectedTask, setSelectedTask] = useState<DailyTask | null>(null);
   const [currentAnswer, setCurrentAnswer] = useState('');
@@ -198,14 +381,30 @@ const Daily: React.FC = () => {
   const [showResult, setShowResult] = useState(false);
 
   useEffect(() => {
+    const timer = window.setInterval(() => {
+      setTodayKey(toDateKey(new Date()));
+    }, 60 * 1000);
+
+    return () => window.clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
     const savedTasks = localStorage.getItem(taskStorageKey(todayKey, user?.email));
 
     if (savedTasks) {
-      setDailyTasks(JSON.parse(savedTasks));
-      return;
+      try {
+        const parsedTasks = JSON.parse(savedTasks) as DailyTask[];
+
+        if (parsedTasks.length === DAILY_TASK_COUNT) {
+          setDailyTasks(parsedTasks);
+          return;
+        }
+      } catch {
+        localStorage.removeItem(taskStorageKey(todayKey, user?.email));
+      }
     }
 
-    const tasks = buildDailyTasks(todayKey);
+    const tasks = buildDailyTasks(todayKey, user?.email);
     setDailyTasks(tasks);
     localStorage.setItem(taskStorageKey(todayKey, user?.email), JSON.stringify(tasks));
   }, [todayKey, user?.email]);
@@ -234,7 +433,7 @@ const Daily: React.FC = () => {
     if (!task || task.completed) return;
 
     const updatedTasks = dailyTasks.map(item =>
-      item.id === taskId ? { ...item, completed: true } : item
+      item.id === taskId ? { ...item, completed: true, completedAt: new Date().toISOString() } : item
     );
 
     addPoints(task.points);
@@ -331,7 +530,7 @@ const Daily: React.FC = () => {
               </p>
               <h1 className="mt-2 text-3xl font-bold text-gray-900">Real-world practice</h1>
               <p className="mt-2 max-w-2xl text-gray-600">
-                Finish today&apos;s short mission: a situation, useful lines, a speaking prompt, and one quiz.
+                Finish today&apos;s fresh set: two situations, two phrase drills, a speaking prompt, and one quiz.
               </p>
             </div>
             <div className="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-orange-800">
@@ -371,7 +570,7 @@ const Daily: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.15 }}
-          className="mb-8 grid gap-4 md:grid-cols-2"
+          className="mb-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3"
         >
           {dailyTasks.map(task => (
             <TaskCard key={task.id} task={task} />
