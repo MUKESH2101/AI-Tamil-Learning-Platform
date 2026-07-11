@@ -7,8 +7,6 @@ import {
   Calendar, 
   Target, 
   BookOpen,
-  Settings,
-  Edit,
   Save,
   X
 } from 'lucide-react';
@@ -152,6 +150,17 @@ const Profile: React.FC = () => {
   const [photoPreview, setPhotoPreview] = useState<string>(user?.photo || '');
 
   useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!profileMenuRef.current?.contains(event.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
 
     setEditForm({
@@ -174,6 +183,7 @@ const Profile: React.FC = () => {
       });
     }
     setIsEditing(false);
+    setProfileMenuOpen(false);
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -399,7 +409,7 @@ const Profile: React.FC = () => {
         >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-4">
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center overflow-hidden">
+              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center overflow-hidden ring-4 ring-transparent hover:ring-blue-100 focus:outline-none focus:ring-blue-200 transition-all">
                 {photoPreview ? (
                   <img src={photoPreview} alt="Profile" className="w-20 h-20 object-cover rounded-full" />
                 ) : (
@@ -420,44 +430,6 @@ const Profile: React.FC = () => {
                 <p className="text-gray-600 capitalize">{user.level} Learner</p>
                 <p className="text-sm text-gray-500">Member since {new Date(user.createdAt).toLocaleDateString()}</p>
               </div>
-            </div>
-            
-            <div className="flex space-x-2">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={handleSave}
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                  >
-                    <Save size={16} />
-                    <span>Save</span>
-                  </button>
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                  >
-                    <X size={16} />
-                    <span>Cancel</span>
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  >
-                    <Edit size={16} />
-                    <span>Edit Profile</span>
-                  </button>
-                  <button
-                    onClick={logout}
-                    className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                  >
-                    <X size={16} />
-                    <span>Logout</span>
-                  </button>
-                </>
-              )}
             </div>
           </div>
 
