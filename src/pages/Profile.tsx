@@ -150,17 +150,6 @@ const Profile: React.FC = () => {
   const [photoPreview, setPhotoPreview] = useState<string>(user?.photo || '');
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!profileMenuRef.current?.contains(event.target as Node)) {
-        setProfileMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
     if (!user) return;
 
     setEditForm({
@@ -183,7 +172,6 @@ const Profile: React.FC = () => {
       });
     }
     setIsEditing(false);
-    setProfileMenuOpen(false);
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -382,12 +370,12 @@ const Profile: React.FC = () => {
   }));
 
   const stats = [
-    { label: 'Current Streak', value: user.streak, icon: TrendingUp, color: 'text-orange-600' },
-    { label: 'Total Points', value: user.totalPoints, icon: Target, color: 'text-blue-600' },
-    { label: 'Achievements', value: user.achievements.length, icon: Award, color: 'text-yellow-600' },
-    { label: 'Days Learning', value: profileProgress.daysLearning, icon: Calendar, color: 'text-green-600' },
-    { label: 'Lessons Completed', value: profileProgress.completedLessons, icon: BookOpen, color: 'text-purple-600' },
-    { label: 'Words Learned', value: profileProgress.wordsLearned, icon: BookOpen, color: 'text-pink-600' }
+    { label: 'Current Streak', value: user.streak, icon: TrendingUp, color: 'text-marigold-600' },
+    { label: 'Total Points', value: user.totalPoints, icon: Target, color: 'text-vermillion-600' },
+    { label: 'Achievements', value: user.achievements.length, icon: Award, color: 'text-marigold-600' },
+    { label: 'Days Learning', value: profileProgress.daysLearning, icon: Calendar, color: 'text-teal-600' },
+    { label: 'Lessons Completed', value: profileProgress.completedLessons, icon: BookOpen, color: 'text-vermillion-600' },
+    { label: 'Words Learned', value: profileProgress.wordsLearned, icon: BookOpen, color: 'text-vermillion-600' }
   ];
 
   const learningPathProgress = [
@@ -399,17 +387,17 @@ const Profile: React.FC = () => {
   ];
 
   return (
-  <div className="min-h-screen bg-gradient-to-br from-pink-200 via-yellow-100 to-green-200 p-4">
+  <div className="min-h-screen bg-gradient-to-br from-vermillion-100 via-marigold-50 to-teal-50 dark:from-ink-800 dark:via-ink-800 dark:to-ink-800 p-4">
       <div className="container mx-auto max-w-6xl">
         {/* Profile Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-lg p-8 mb-6"
+          className="bg-white dark:bg-ink-600 rounded-xl2 shadow-card p-8 mb-6"
         >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-4">
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center overflow-hidden ring-4 ring-transparent hover:ring-blue-100 focus:outline-none focus:ring-blue-200 transition-all">
+              <div className="w-20 h-20 bg-gradient-to-r from-vermillion-500 to-marigold-600 rounded-full flex items-center justify-center overflow-hidden ring-4 ring-transparent hover:ring-vermillion-100 focus:outline-none focus:ring-vermillion-200 transition-all">
                 {photoPreview ? (
                   <img src={photoPreview} alt="Profile" className="w-20 h-20 object-cover rounded-full" />
                 ) : (
@@ -422,13 +410,13 @@ const Profile: React.FC = () => {
                     type="text"
                     value={editForm.name}
                     onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
-                    className="text-2xl font-bold text-gray-800 border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                    className="text-2xl font-bold text-ink-700 dark:text-cream-100 border-b border-ink-100 dark:border-ink-400 focus:outline-none focus:border-vermillion-500"
                   />
                 ) : (
-                  <h1 className="text-2xl font-bold text-gray-800">{user.name}</h1>
+                  <h1 className="text-2xl font-bold text-ink-700 dark:text-cream-100">{user.name}</h1>
                 )}
-                <p className="text-gray-600 capitalize">{user.level} Learner</p>
-                <p className="text-sm text-gray-500">Member since {new Date(user.createdAt).toLocaleDateString()}</p>
+                <p className="text-ink-400 dark:text-cream-300/70 capitalize">{user.level} Learner</p>
+                <p className="text-sm text-ink-300 dark:text-cream-300/60">Member since {new Date(user.createdAt).toLocaleDateString()}</p>
               </div>
             </div>
           </div>
@@ -444,7 +432,7 @@ const Profile: React.FC = () => {
               >
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-ink-600 dark:text-cream-200 mb-2">
                       Profile Photo
                     </label>
                     <div className="flex gap-2">
@@ -452,21 +440,21 @@ const Profile: React.FC = () => {
                         type="file"
                         accept="image/*"
                         onChange={handlePhotoChange}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full border border-ink-100 dark:border-ink-400 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-vermillion-500"
                         style={{ maxWidth: 180 }}
                       />
                       <button
                         type="button"
                         onClick={handleTakePhoto}
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                        className="px-4 py-2 bg-vermillion-500 text-white rounded-xl hover:bg-vermillion-600 transition-colors"
                       >
                         Take Photo
                       </button>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Choose from gallery or use your camera</p>
+                    <p className="text-xs text-ink-300 dark:text-cream-300/60 mt-1">Choose from gallery or use your camera</p>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-ink-600 dark:text-cream-200 mb-2">
                       Daily Goal (minutes)
                     </label>
                     <input
@@ -475,17 +463,17 @@ const Profile: React.FC = () => {
                       max="120"
                       value={editForm.dailyGoal}
                       onChange={(e) => setEditForm(prev => ({ ...prev, dailyGoal: parseInt(e.target.value) }))}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-ink-100 dark:border-ink-400 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-vermillion-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-ink-600 dark:text-cream-200 mb-2">
                       Learning Level
                     </label>
                     <select
                       value={editForm.level}
                       onChange={(e) => setEditForm(prev => ({ ...prev, level: e.target.value as 'beginner' | 'intermediate' | 'advanced' }))}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-ink-100 dark:border-ink-400 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-vermillion-500"
                     >
                       <option value="beginner">Beginner</option>
                       <option value="intermediate">Intermediate</option>
@@ -511,11 +499,11 @@ const Profile: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 * index }}
-              className="bg-gray-100 rounded-xl p-6 text-center border hover:scale-105 transition-transform"
+              className="bg-cream-300 dark:bg-ink-600 rounded-xl2 p-6 text-center border hover:scale-105 transition-transform"
             >
               <stat.icon className="mx-auto mb-2 drop-shadow-lg" size={24} />
-              <p className="text-2xl font-extrabold text-gray-800">{stat.value}</p>
-              <p className="text-sm text-gray-700 font-semibold">{stat.label}</p>
+              <p className="text-2xl font-extrabold text-ink-700 dark:text-cream-100">{stat.value}</p>
+              <p className="text-sm text-ink-600 dark:text-cream-200 font-semibold">{stat.label}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -526,15 +514,15 @@ const Profile: React.FC = () => {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-white rounded-xl shadow-lg p-6"
+            className="bg-white dark:bg-ink-600 rounded-xl2 shadow-card p-6"
           >
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-              <Award className="text-yellow-500 mr-2" />
+            <h2 className="text-2xl font-bold text-ink-700 dark:text-cream-100 mb-4 flex items-center">
+              <Award className="text-marigold-500 mr-2" />
               Achievements
             </h2>
             
             {achievements.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-gray-600">
+              <div className="rounded-xl border border-dashed border-ink-100 dark:border-ink-400 bg-cream-200 dark:bg-ink-700 p-6 text-center text-ink-400 dark:text-cream-300/70">
                 Complete lessons, daily tasks, or streak goals to earn achievements.
               </div>
             ) : (
@@ -545,28 +533,28 @@ const Profile: React.FC = () => {
                   whileHover={{ scale: 1.05 }}
                   className={`p-4 rounded-lg border-2 transition-all 
                     ${achievement.earned 
-                      ? 'bg-gradient-to-br from-green-200 via-green-100 to-yellow-100 border-green-400' 
-                      : 'bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 border-gray-300 opacity-60'}
+                      ? 'bg-gradient-to-br from-vermillion-200 via-marigold-100 to-teal-100 border-teal-400' 
+                      : 'bg-gradient-to-br from-ink-100 via-ink-200 to-ink-300 border-ink-100 dark:border-ink-400 opacity-60'}
                   `}
                 >
                   <div className="flex items-center space-x-2 mb-2">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      achievement.earned ? 'bg-yellow-400' : 'bg-gray-300'
+                      achievement.earned ? 'bg-marigold-400' : 'bg-ink-300'
                     }`}>
                       <Award className="text-white" size={16} />
                     </div>
                     <h3 className={`font-semibold ${
-                      achievement.earned ? 'text-yellow-800' : 'text-gray-600'
+                      achievement.earned ? 'text-marigold-700' : 'text-ink-400 dark:text-cream-300/70'
                     }`}>
                       {achievement.name}
                     </h3>
                   </div>
                   <p className={`text-xs ${
-                    achievement.earned ? 'text-yellow-700' : 'text-gray-500'
+                    achievement.earned ? 'text-marigold-700' : 'text-ink-300 dark:text-cream-300/60'
                   }`}>
                     {achievement.description}
                   </p>
-                  {achievement.earned && <span className="text-green-600 font-semibold text-xs">Earned</span>}
+                  {achievement.earned && <span className="text-teal-600 font-semibold text-xs">Earned</span>}
                 </motion.div>
                 ))}
               </div>
@@ -578,10 +566,10 @@ const Profile: React.FC = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.6 }}
-            className="bg-gray-100 rounded-xl p-6 border"
+            className="bg-cream-300 dark:bg-ink-600 rounded-xl2 p-6 border"
           >
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-              <TrendingUp className="text-blue-500 mr-2" />
+            <h2 className="text-2xl font-bold text-ink-700 dark:text-cream-100 mb-4 flex items-center">
+              <TrendingUp className="text-vermillion-500 mr-2" />
               Learning Progress
             </h2>
             
@@ -589,22 +577,22 @@ const Profile: React.FC = () => {
               {learningPathProgress.map((topic) => (
                 <div key={topic.topic} className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-gray-800">{topic.topic}</h3>
-                    <span className="text-sm text-gray-600">
+                    <h3 className="font-medium text-ink-700 dark:text-cream-100">{topic.topic}</h3>
+                    <span className="text-sm text-ink-400 dark:text-cream-300/70">
                       {Math.floor((topic.progress / Math.max(topic.total, 1)) * 100)}%
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                  <div className="w-full bg-ink-50 dark:bg-ink-500 rounded-full h-2 overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.min((topic.progress / Math.max(topic.total, 1)) * 100, 100)}%` }}
                       transition={{ duration: 1, delay: 0.2 }}
                       className={`h-full rounded-full ${
                         topic.progress === topic.total 
-                          ? 'bg-green-500' 
+                          ? 'bg-teal-500' 
                           : topic.progress > 0 
-                            ? 'bg-blue-500' 
-                            : 'bg-gray-300'
+                            ? 'bg-vermillion-500' 
+                            : 'bg-ink-300'
                       }`}
                     />
                   </div>
@@ -619,16 +607,16 @@ const Profile: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
-          className="mt-6 bg-white rounded-xl shadow-lg p-6"
+          className="mt-6 bg-white rounded-xl2 shadow-card p-6"
         >
-          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center">
-            <Calendar className="text-green-500 mr-2" />
+          <h2 className="text-2xl font-bold text-ink-700 dark:text-cream-100 mb-4 flex items-center">
+            <Calendar className="text-teal-500 mr-2" />
             Recent Activity
           </h2>
           
           <div className="space-y-3">
             {profileProgress.recentActivity.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-6 text-center text-gray-600">
+              <div className="rounded-xl border border-dashed border-ink-100 dark:border-ink-400 bg-cream-200 dark:bg-ink-700 p-6 text-center text-ink-400 dark:text-cream-300/70">
                 No completed learning activity yet. Finished lessons and daily tasks will appear here.
               </div>
             ) : profileProgress.recentActivity.map((activity, index) => (
@@ -637,13 +625,13 @@ const Profile: React.FC = () => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 * index }}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                className="flex items-center justify-between p-3 bg-cream-200 dark:bg-ink-700 rounded-xl"
               >
                 <div>
-                  <p className="font-medium text-gray-800">{activity.action}</p>
-                  <p className="text-sm text-gray-600">{activity.time}</p>
+                  <p className="font-medium text-ink-700 dark:text-cream-100">{activity.action}</p>
+                  <p className="text-sm text-ink-400 dark:text-cream-300/70">{activity.time}</p>
                 </div>
-                <span className="text-sm font-semibold text-blue-600">
+                <span className="text-sm font-semibold text-vermillion-600">
                   {activity.points > 0 ? `+${activity.points} pts` : 'Completed'}
                 </span>
               </motion.div>

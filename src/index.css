@@ -1,3 +1,102 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-cream-200 text-ink-700 dark:bg-ink-800 dark:text-cream-200 font-sans antialiased;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+  ::selection {
+    @apply bg-marigold-200 text-ink-800;
+  }
+
+  /* Visible keyboard focus everywhere */
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid theme('colors.marigold.500');
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Thin, tasteful scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: theme('colors.ink.200');
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background-color: theme('colors.ink.500');
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* Kolam dot-grid texture: the app's recurring signature pattern */
+  .kolam-field {
+    background-image: radial-gradient(currentColor 1.4px, transparent 1.4px);
+    background-size: 22px 22px;
+  }
+
+  .card {
+    @apply bg-white dark:bg-ink-600 border border-ink-50 dark:border-ink-500 rounded-xl2 shadow-soft;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-card hover:-translate-y-0.5;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full font-sans font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-vermillion-500 text-white px-6 py-3 shadow-soft hover:bg-vermillion-600 hover:-translate-y-0.5 active:translate-y-0;
+  }
+  .btn-secondary {
+    @apply btn bg-ink-700 text-white px-6 py-3 hover:bg-ink-600 dark:bg-ink-500 dark:hover:bg-ink-400;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent text-ink-700 dark:text-cream-200 px-5 py-2.5 border border-ink-100 dark:border-ink-400 hover:border-marigold-400 hover:bg-marigold-50 dark:hover:bg-ink-500;
+  }
+  .btn-accent {
+    @apply btn bg-marigold-500 text-ink-800 px-6 py-3 shadow-soft hover:bg-marigold-400 hover:-translate-y-0.5;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold;
+  }
+
+  .field {
+    @apply w-full rounded-xl border border-ink-100 dark:border-ink-400 bg-white dark:bg-ink-600 px-4 py-3 text-ink-700 dark:text-cream-100 placeholder:text-ink-300 focus:outline-none focus:ring-2 focus:ring-marigold-400 focus:border-transparent transition-all;
+  }
+
+  .section-eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-vermillion-500 dark:text-marigold-300;
+  }
+}

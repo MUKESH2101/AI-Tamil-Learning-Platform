@@ -136,29 +136,29 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-yellow-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-vermillion-50 via-marigold-50 to-teal-50 dark:from-ink-800 dark:via-ink-800 dark:to-ink-800 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+        <div className="bg-white dark:bg-ink-600 rounded-2xl shadow-card overflow-hidden">
           <div className="p-8">
             <div className="text-center mb-8">
-              <div className="w-16 h-16 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-gradient-to-r from-vermillion-500 to-marigold-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <User className="h-8 w-8 text-white" />
               </div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-600 to-red-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-vermillion-600 to-marigold-600 bg-clip-text text-transparent">
                 Tamil Learn AI
               </h1>
-              <p className="text-gray-600 mt-2">Create a new password</p>
+              <p className="text-ink-400 dark:text-cream-300/70 mt-2">Create a new password</p>
             </div>
 
             {resetRequest && (
-              <div className="mb-6 rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+              <div className="mb-6 rounded-xl border border-marigold-200 bg-marigold-50 px-4 py-3 text-sm text-marigold-700">
                 Resetting password for {resetRequest.email}
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-start space-x-3">
+                <div className="bg-vermillion-50 border border-vermillion-200 text-vermillion-700 px-4 py-3 rounded-xl flex items-start space-x-3">
                   <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-medium">Please check this</p>
@@ -168,7 +168,7 @@ export default function ResetPassword() {
               )}
 
               {success && (
-                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg flex items-start space-x-3">
+                <div className="bg-teal-50 border border-teal-100 text-teal-700 px-4 py-3 rounded-xl flex items-start space-x-3">
                   <CheckCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-medium">Password updated</p>
@@ -178,16 +178,16 @@ export default function ResetPassword() {
               )}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-600 dark:text-cream-200 mb-2">
                   New Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ink-200 dark:text-cream-300/40" />
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-3 border border-ink-100 dark:border-ink-400 rounded-xl focus:ring-2 focus:ring-marigold-500 focus:border-transparent"
                     placeholder="Enter new password"
                     required
                   />
@@ -195,16 +195,16 @@ export default function ResetPassword() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-ink-600 dark:text-cream-200 mb-2">
                   Confirm Password
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-ink-200 dark:text-cream-300/40" />
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full pl-10 pr-4 py-3 border border-ink-100 dark:border-ink-400 rounded-xl focus:ring-2 focus:ring-marigold-500 focus:border-transparent"
                     placeholder="Confirm new password"
                     required
                   />
@@ -213,7 +213,7 @@ export default function ResetPassword() {
 
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-orange-500 to-red-500 text-white py-3 rounded-lg font-medium hover:from-orange-600 hover:to-red-600 transition-all duration-200 transform hover:scale-105"
+                className="w-full bg-gradient-to-r from-vermillion-500 to-marigold-500 text-white py-3 rounded-xl font-medium hover:from-teal-600 hover:to-vermillion-600 transition-all duration-200 transform hover:scale-105"
               >
                 Change Password
               </button>
@@ -223,19 +223,19 @@ export default function ResetPassword() {
               {success ? (
                 <button
                   onClick={goToLogin}
-                  className="text-orange-600 hover:text-orange-700 font-medium"
+                  className="text-marigold-600 hover:text-marigold-700 font-medium"
                 >
                   Back to sign in
                 </button>
               ) : (
-                <Link to="/" className="text-orange-600 hover:text-orange-700 font-medium">
+                <Link to="/" className="text-marigold-600 hover:text-marigold-700 font-medium">
                   Back to sign in
                 </Link>
               )}
             </div>
           </div>
 
-          <div className="bg-gray-50 px-8 py-4 text-center text-sm text-gray-600">
+          <div className="bg-cream-200 dark:bg-ink-700 px-8 py-4 text-center text-sm text-ink-400 dark:text-cream-300/70">
             Your old password stops working after this change
           </div>
         </div>

@@ -486,28 +486,28 @@ const Daily: React.FC = () => {
         whileTap={{ scale: 0.99 }}
         className={`text-left bg-white border rounded-lg p-5 shadow-sm transition-all ${
           task.completed
-            ? 'border-green-300 bg-green-50'
-            : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
+            ? 'border-teal-400 bg-teal-50'
+            : 'border-ink-50 dark:border-ink-500 hover:border-vermillion-300 hover:shadow-soft'
         }`}
         onClick={() => !task.completed && setSelectedTask(task)}
       >
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-vermillion-50 text-vermillion-600">
               <Icon size={20} />
             </span>
             <div>
-              <h3 className="font-semibold text-gray-900">{task.title}</h3>
-              <p className="mt-1 text-sm text-gray-600">{task.subtitle}</p>
+              <h3 className="font-semibold text-ink-900">{task.title}</h3>
+              <p className="mt-1 text-sm text-ink-400 dark:text-cream-300/70">{task.subtitle}</p>
             </div>
           </div>
-          {task.completed && <CheckCircle className="shrink-0 text-green-600" size={20} />}
+          {task.completed && <CheckCircle className="shrink-0 text-teal-600" size={20} />}
         </div>
         <div className="mt-4 flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-500">
+          <span className="text-sm font-medium text-ink-300 dark:text-cream-300/60">
             {task.completed ? 'Completed' : 'Start task'}
           </span>
-          <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+          <span className="rounded-full bg-marigold-50 px-3 py-1 text-xs font-semibold text-marigold-700">
             {task.points} pts
           </span>
         </div>
@@ -516,7 +516,7 @@ const Daily: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4">
+    <div className="min-h-screen bg-cream-200 dark:bg-ink-800 p-4">
       <div className="container mx-auto max-w-6xl">
         <motion.div
           initial={{ opacity: 0, y: -16 }}
@@ -525,15 +525,15 @@ const Daily: React.FC = () => {
         >
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">
+              <p className="text-sm font-semibold uppercase tracking-wide text-vermillion-600">
                 Daily Tamil
               </p>
-              <h1 className="mt-2 text-3xl font-bold text-gray-900">Real-world practice</h1>
-              <p className="mt-2 max-w-2xl text-gray-600">
+              <h1 className="mt-2 text-3xl font-bold text-ink-900">Real-world practice</h1>
+              <p className="mt-2 max-w-2xl text-ink-400 dark:text-cream-300/70">
                 Finish today&apos;s fresh set: two situations, two phrase drills, a speaking prompt, and one quiz.
               </p>
             </div>
-            <div className="rounded-lg border border-orange-200 bg-orange-50 px-4 py-3 text-orange-800">
+            <div className="rounded-xl border border-marigold-200 bg-marigold-50 px-4 py-3 text-marigold-700">
               <div className="flex items-center gap-2">
                 <Flame size={20} />
                 <span className="text-2xl font-bold">{user?.streak || 0}</span>
@@ -543,25 +543,25 @@ const Daily: React.FC = () => {
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-            <div className="rounded-lg border bg-white p-4">
-              <Calendar className="mb-2 text-blue-500" size={22} />
-              <p className="text-2xl font-bold text-gray-900">{new Date().getDate()}</p>
-              <p className="text-sm text-gray-600">Today</p>
+            <div className="rounded-xl border bg-white p-4">
+              <Calendar className="mb-2 text-vermillion-500" size={22} />
+              <p className="text-2xl font-bold text-ink-900">{new Date().getDate()}</p>
+              <p className="text-sm text-ink-400 dark:text-cream-300/70">Today</p>
             </div>
-            <div className="rounded-lg border bg-white p-4">
-              <CheckCircle className="mb-2 text-green-500" size={22} />
-              <p className="text-2xl font-bold text-gray-900">{completedTasks}/{DAILY_TASK_COUNT}</p>
-              <p className="text-sm text-gray-600">Completed</p>
+            <div className="rounded-xl border bg-white p-4">
+              <CheckCircle className="mb-2 text-teal-500" size={22} />
+              <p className="text-2xl font-bold text-ink-900">{completedTasks}/{DAILY_TASK_COUNT}</p>
+              <p className="text-sm text-ink-400 dark:text-cream-300/70">Completed</p>
             </div>
-            <div className="rounded-lg border bg-white p-4">
-              <Star className="mb-2 text-yellow-500" size={22} />
-              <p className="text-2xl font-bold text-gray-900">{totalPoints}</p>
-              <p className="text-sm text-gray-600">Points today</p>
+            <div className="rounded-xl border bg-white p-4">
+              <Star className="mb-2 text-marigold-500" size={22} />
+              <p className="text-2xl font-bold text-ink-900">{totalPoints}</p>
+              <p className="text-sm text-ink-400 dark:text-cream-300/70">Points today</p>
             </div>
-            <div className="rounded-lg border bg-white p-4">
-              <ClipboardCheck className="mb-2 text-purple-500" size={22} />
-              <p className="text-2xl font-bold text-gray-900">{Math.round(progress)}%</p>
-              <p className="text-sm text-gray-600">Progress</p>
+            <div className="rounded-xl border bg-white p-4">
+              <ClipboardCheck className="mb-2 text-vermillion-500" size={22} />
+              <p className="text-2xl font-bold text-ink-900">{Math.round(progress)}%</p>
+              <p className="text-sm text-ink-400 dark:text-cream-300/70">Progress</p>
             </div>
           </div>
         </motion.div>
@@ -577,19 +577,19 @@ const Daily: React.FC = () => {
           ))}
         </motion.div>
 
-        <div className="rounded-lg border bg-white p-5">
+        <div className="rounded-xl border bg-white p-5">
           <div className="mb-2 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900">Today&apos;s completion</h3>
-            <span className="text-sm font-medium text-gray-600">
+            <h3 className="font-semibold text-ink-900">Today&apos;s completion</h3>
+            <span className="text-sm font-medium text-ink-400 dark:text-cream-300/70">
               {completedTasks}/{dailyTasks.length || DAILY_TASK_COUNT}
             </span>
           </div>
-          <div className="h-3 overflow-hidden rounded-full bg-gray-200">
+          <div className="h-3 overflow-hidden rounded-full bg-ink-50 dark:bg-ink-500">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.6, ease: 'easeOut' }}
-              className="h-full rounded-full bg-blue-600"
+              className="h-full rounded-full bg-vermillion-600"
             />
           </div>
         </div>
@@ -608,25 +608,25 @@ const Daily: React.FC = () => {
               initial={{ scale: 0.96, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.96, opacity: 0 }}
-              className="max-h-[82vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl"
+              className="max-h-[82vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-card"
               onClick={(event) => event.stopPropagation()}
             >
-              <h2 className="text-2xl font-bold text-gray-900">{selectedTask.title}</h2>
-              <p className="mt-1 text-gray-600">{selectedTask.subtitle}</p>
+              <h2 className="text-2xl font-bold text-ink-900">{selectedTask.title}</h2>
+              <p className="mt-1 text-ink-400 dark:text-cream-300/70">{selectedTask.subtitle}</p>
 
               {selectedTask.type === 'scenario' && (
                 <div className="mt-6">
                   {(selectedTask.content as ScenarioContent).steps.map((step, index) => (
-                    <div key={step} className="mb-3 flex items-center gap-3 rounded-lg border p-3">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-sm font-bold text-blue-700">
+                    <div key={step} className="mb-3 flex items-center gap-3 rounded-xl border p-3">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-vermillion-100 text-sm font-bold text-vermillion-700">
                         {index + 1}
                       </span>
-                      <span className="text-gray-800">{step}</span>
+                      <span className="text-ink-700 dark:text-cream-100">{step}</span>
                     </div>
                   ))}
                   <button
                     onClick={() => completeTask(selectedTask.id)}
-                    className="mt-4 rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
+                    className="mt-4 rounded-xl bg-vermillion-600 px-6 py-3 font-semibold text-white hover:bg-vermillion-700"
                   >
                     I can handle this (+{selectedTask.points} pts)
                   </button>
@@ -636,15 +636,15 @@ const Daily: React.FC = () => {
               {selectedTask.type === 'phrases' && (
                 <div className="mt-6">
                   {(selectedTask.content as PhrasesContent).phrases.map((phrase) => (
-                    <div key={`${phrase.english}-${phrase.tamil}`} className="mb-3 rounded-lg border p-4">
-                      <p className="text-lg font-semibold text-gray-900">{phrase.tamil}</p>
-                      <p className="text-sm text-gray-500">{phrase.transliteration}</p>
-                      <p className="mt-1 text-blue-700">{phrase.english}</p>
+                    <div key={`${phrase.english}-${phrase.tamil}`} className="mb-3 rounded-xl border p-4">
+                      <p className="text-lg font-semibold text-ink-900">{phrase.tamil}</p>
+                      <p className="text-sm text-ink-300 dark:text-cream-300/60">{phrase.transliteration}</p>
+                      <p className="mt-1 text-vermillion-700">{phrase.english}</p>
                     </div>
                   ))}
                   <button
                     onClick={() => completeTask(selectedTask.id)}
-                    className="mt-4 rounded-lg bg-green-600 px-6 py-3 font-semibold text-white hover:bg-green-700"
+                    className="mt-4 rounded-xl bg-teal-600 px-6 py-3 font-semibold text-white hover:bg-teal-700"
                   >
                     Practiced these lines (+{selectedTask.points} pts)
                   </button>
@@ -653,25 +653,25 @@ const Daily: React.FC = () => {
 
               {selectedTask.type === 'roleplay' && (
                 <div className="mt-6">
-                  <div className="rounded-lg bg-indigo-50 p-4 text-indigo-900">
+                  <div className="rounded-xl bg-vermillion-50 p-4 text-vermillion-700">
                     {(selectedTask.content as RoleplayContent).situation}
                   </div>
-                  <label className="mt-5 block text-sm font-semibold text-gray-700">
+                  <label className="mt-5 block text-sm font-semibold text-ink-600 dark:text-cream-200">
                     {(selectedTask.content as RoleplayContent).prompt}
                   </label>
                   <textarea
                     value={roleplayAnswer}
                     onChange={(event) => setRoleplayAnswer(event.target.value)}
-                    className="mt-2 min-h-28 w-full rounded-lg border border-gray-300 p-3 focus:border-blue-500 focus:outline-none"
+                    className="mt-2 min-h-28 w-full rounded-xl border border-ink-100 dark:border-ink-400 p-3 focus:border-vermillion-500 focus:outline-none"
                     placeholder="Type your sentence here"
                   />
-                  <p className="mt-3 text-sm text-gray-600">
+                  <p className="mt-3 text-sm text-ink-400 dark:text-cream-300/70">
                     Example: {(selectedTask.content as RoleplayContent).sampleAnswer}
                   </p>
                   <button
                     onClick={() => completeTask(selectedTask.id)}
                     disabled={roleplayAnswer.trim().length < 4}
-                    className="mt-4 rounded-lg bg-indigo-600 px-6 py-3 font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="mt-4 rounded-xl bg-vermillion-600 px-6 py-3 font-semibold text-white hover:bg-vermillion-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Save practice (+{selectedTask.points} pts)
                   </button>
@@ -687,15 +687,15 @@ const Daily: React.FC = () => {
 
                     return (
                       <>
-                        <h3 className="mb-4 text-xl font-semibold text-gray-900">{question.question}</h3>
+                        <h3 className="mb-4 text-xl font-semibold text-ink-900">{question.question}</h3>
                         <div className="space-y-2">
                           {question.options.map((option, index) => (
                             <label
                               key={option}
                               className={`block cursor-pointer rounded-lg border p-3 ${
                                 currentAnswer === index.toString()
-                                  ? 'border-blue-400 bg-blue-50'
-                                  : 'border-gray-200 hover:bg-gray-50'
+                                  ? 'border-vermillion-400 bg-vermillion-50'
+                                  : 'border-ink-50 dark:border-ink-500 hover:bg-cream-200'
                               }`}
                             >
                               <input
@@ -713,12 +713,12 @@ const Daily: React.FC = () => {
 
                         {showResult && (
                           <div className={`mt-4 rounded-lg border p-4 ${
-                            isCorrect ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'
+                            isCorrect ? 'border-teal-100 bg-teal-50' : 'border-vermillion-200 bg-vermillion-50'
                           }`}>
-                            <p className={`font-semibold ${isCorrect ? 'text-green-800' : 'text-red-800'}`}>
+                            <p className={`font-semibold ${isCorrect ? 'text-teal-700' : 'text-vermillion-700'}`}>
                               {isCorrect ? 'Correct' : 'Try again'}
                             </p>
-                            <p className="mt-1 text-gray-700">{question.explanation}</p>
+                            <p className="mt-1 text-ink-600 dark:text-cream-200">{question.explanation}</p>
                           </div>
                         )}
 
@@ -726,7 +726,7 @@ const Daily: React.FC = () => {
                           <button
                             onClick={handleQuizSubmit}
                             disabled={!currentAnswer}
-                            className="mt-5 rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="mt-5 rounded-xl bg-vermillion-600 px-6 py-3 font-semibold text-white hover:bg-vermillion-700 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             Submit answer
                           </button>
@@ -736,7 +736,7 @@ const Daily: React.FC = () => {
                               setCurrentAnswer('');
                               setShowResult(false);
                             }}
-                            className="mt-5 rounded-lg bg-orange-500 px-6 py-3 font-semibold text-white hover:bg-orange-600"
+                            className="mt-5 rounded-xl bg-marigold-500 px-6 py-3 font-semibold text-ink-800 hover:bg-marigold-600"
                           >
                             Try again
                           </button>

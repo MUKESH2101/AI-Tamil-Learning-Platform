@@ -31,7 +31,7 @@ const Audio: React.FC = () => {
 
   const playText = async () => {
     if (!text.trim()) return;
-    
+
     try {
       setIsPlaying(true);
       await speechService.speak(text, language, rate);
@@ -65,7 +65,6 @@ const Audio: React.FC = () => {
       if (detectedLang === 'en') {
         result = await translationService.translateToTamil(text);
         setTranslation(result);
-        // Get pronunciation if available
         const rules = translationService.getTransliterationRules();
         setPronunciation(rules[result] || '');
       } else {
@@ -88,27 +87,29 @@ const Audio: React.FC = () => {
   };
 
   return (
-  <div className="min-h-screen bg-white p-4">
+    <div className="min-h-screen bg-cream-200 dark:bg-ink-800 p-4">
       <div className="container mx-auto max-w-4xl">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
+          className="text-center mb-8 pt-4"
         >
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Text-to-Speech</h1>
-          <p className="text-gray-600">Convert text to natural-sounding Tamil and English speech</p>
+          <p className="section-eyebrow mb-2 justify-center">Listen &amp; speak</p>
+          <h1 className="text-3xl font-display font-semibold text-ink-700 dark:text-cream-100 mb-2">Text-to-Speech</h1>
+          <p className="text-ink-400 dark:text-cream-300/70">Convert text to natural-sounding Tamil and English speech</p>
         </motion.div>
 
         {/* Main Audio Panel */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-br from-blue-100 via-green-50 to-yellow-50 rounded-2xl shadow-xl p-8 mb-6 border-2 border-white"
+          className="relative overflow-hidden rounded-xl2 bg-ink-700 text-cream-100 shadow-card p-8 mb-6"
         >
+          <div className="absolute inset-0 kolam-field text-marigold-400/[0.06] pointer-events-none" />
           {/* Text Input */}
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
+          <div className="relative mb-6">
+            <label className="block text-sm font-semibold text-cream-200 mb-2">
               Enter text to convert to speech:
             </label>
             <textarea
@@ -116,28 +117,26 @@ const Audio: React.FC = () => {
               onChange={(e) => setText(e.target.value)}
               placeholder="Type or paste text here..."
               rows={4}
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+              className="w-full rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-marigold-400 text-lg bg-white/95 text-ink-700 font-tamil"
             />
           </div>
 
           {/* Controls */}
-          <div className="grid md:grid-cols-3 gap-4 mb-6">
-            {/* Language Selection */}
+          <div className="relative grid md:grid-cols-3 gap-4 mb-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Language:</label>
+              <label className="block text-sm font-semibold text-cream-200 mb-2">Language:</label>
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as 'en' | 'ta')}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-xl px-4 py-2.5 bg-white/95 text-ink-700 focus:outline-none focus:ring-2 focus:ring-marigold-400"
               >
                 <option value="ta">Tamil (தமிழ்)</option>
                 <option value="en">English</option>
               </select>
             </div>
 
-            {/* Speech Rate */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-cream-200 mb-2">
                 Speed: {getRateLabel(rate)}
               </label>
               <input
@@ -147,29 +146,28 @@ const Audio: React.FC = () => {
                 step="0.25"
                 value={rate}
                 onChange={(e) => setRate(parseFloat(e.target.value))}
-                className="w-full"
+                className="w-full accent-marigold-400 mt-3.5"
               />
             </div>
 
-            {/* Audio Controls */}
             <div className="flex items-end space-x-2">
               <button
                 onClick={playText}
                 disabled={!text.trim() || isPlaying}
-                className={`flex-1 flex items-center justify-center space-x-2 py-2 px-4 rounded-lg transition-colors ${
-                  isPlaying 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-green-500 hover:bg-green-600 text-white'
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl transition-colors font-semibold ${
+                  isPlaying
+                    ? 'bg-white/20 text-cream-300 cursor-not-allowed'
+                    : 'bg-teal-500 hover:bg-teal-400 text-white'
                 }`}
               >
                 <Volume2 size={20} />
                 <span>{isPlaying ? 'Playing...' : 'Play'}</span>
               </button>
-              
+
               {isPlaying && (
                 <button
                   onClick={stopAudio}
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                  className="px-4 py-2.5 bg-vermillion-500 text-white rounded-xl hover:bg-vermillion-600 transition-colors"
                 >
                   <VolumeX size={20} />
                 </button>
@@ -178,18 +176,18 @@ const Audio: React.FC = () => {
           </div>
 
           {/* Additional Features */}
-          <div className="flex flex-wrap gap-2">
+          <div className="relative flex flex-wrap gap-2">
             <button
               onClick={translateText}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-marigold-400 text-ink-800 font-semibold rounded-xl hover:bg-marigold-300 transition-colors"
             >
               <Languages size={16} />
               <span>Translate</span>
             </button>
-            
+
             <button
               onClick={() => setText('')}
-              className="flex items-center space-x-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-white/10 text-cream-100 font-semibold rounded-xl hover:bg-white/20 transition-colors"
             >
               <Type size={16} />
               <span>Clear</span>
@@ -202,16 +200,16 @@ const Audio: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl shadow-lg p-6 mb-6"
+            className="card p-6 mb-6"
           >
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Translation:</h3>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-2">
-              <p className="text-blue-800 text-lg">{translation}</p>
+            <h3 className="text-lg font-semibold text-ink-700 dark:text-cream-100 mb-3">Translation:</h3>
+            <div className="bg-teal-50 dark:bg-ink-600 border border-teal-200 dark:border-ink-400 rounded-xl p-4 mb-2">
+              <p className="text-teal-800 dark:text-teal-200 text-lg font-tamil">{translation}</p>
             </div>
             {pronunciation && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                <span className="text-orange-700 font-semibold">Pronunciation: </span>
-                <span className="text-orange-800 text-lg">{pronunciation}</span>
+              <div className="bg-marigold-50 dark:bg-ink-600 border border-marigold-200 dark:border-ink-400 rounded-xl p-4">
+                <span className="text-marigold-700 dark:text-marigold-300 font-semibold">Pronunciation: </span>
+                <span className="text-marigold-800 dark:text-marigold-200 text-lg">{pronunciation}</span>
               </div>
             )}
           </motion.div>
@@ -222,9 +220,9 @@ const Audio: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-xl shadow-lg p-6"
+          className="card p-6"
         >
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">Quick Phrases</h3>
+          <h3 className="text-xl font-display font-semibold text-ink-700 dark:text-cream-100 mb-4">Quick Phrases</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {quickPhrases.map((phrase, index) => (
               <motion.button
@@ -232,15 +230,15 @@ const Audio: React.FC = () => {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => handleQuickPhrase(phrase)}
-                className="text-left p-4 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-blue-50 hover:to-purple-50 border border-gray-200 rounded-lg transition-all"
+                className="text-left p-4 bg-cream-200 dark:bg-ink-600 hover:bg-marigold-50 dark:hover:bg-ink-500 border border-ink-50 dark:border-ink-400 rounded-xl transition-all"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-lg font-medium text-gray-800">{phrase.text}</span>
-                  <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded">
+                  <span className="text-lg font-medium text-ink-700 dark:text-cream-100 font-tamil">{phrase.text}</span>
+                  <span className="text-xs px-2 py-1 bg-vermillion-100 dark:bg-vermillion-500/20 text-vermillion-700 dark:text-vermillion-300 rounded-full font-semibold">
                     {phrase.lang === 'ta' ? 'தமிழ்' : 'ENG'}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600">{phrase.translation}</p>
+                <p className="text-sm text-ink-400 dark:text-cream-300/70">{phrase.translation}</p>
               </motion.button>
             ))}
           </div>
@@ -251,13 +249,14 @@ const Audio: React.FC = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="mt-6 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl shadow-lg p-6"
+          className="relative overflow-hidden mt-6 bg-gradient-to-br from-vermillion-500 to-vermillion-600 text-white rounded-xl2 shadow-card p-6"
         >
-          <h3 className="text-xl font-semibold mb-4 flex items-center">
-            <Sliders className="mr-2" />
+          <div className="absolute inset-0 kolam-field text-white/[0.08] pointer-events-none" />
+          <h3 className="relative text-xl font-display font-semibold mb-4 flex items-center gap-2">
+            <Sliders size={20} />
             Audio Features
           </h3>
-          <div className="grid md:grid-cols-3 gap-4 text-sm">
+          <div className="relative grid md:grid-cols-3 gap-4 text-sm">
             <div>
               <h4 className="font-semibold mb-2">Multiple Dialects</h4>
               <p className="opacity-90">

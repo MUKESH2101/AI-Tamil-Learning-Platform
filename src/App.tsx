@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { UserProvider } from './contexts/UserContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { Toaster } from 'react-hot-toast';
 
 import Header from './components/Header';
@@ -38,7 +39,7 @@ function AppContent() {
     return <LoginForm />;
   }
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-cream-200 dark:bg-ink-800">
       <Header />
       <Navigation />
       <main className="flex-1 overflow-auto">
@@ -59,21 +60,27 @@ function AppContent() {
 
 function App() {
   return (
-    <UserProvider>
-      <Router>
-        <AppContent />
-        <Toaster 
-          position="top-right"
-          toastOptions={{
-            duration: 3000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-            },
-          }}
-        />
-      </Router>
-    </UserProvider>
+    <ThemeProvider>
+      <UserProvider>
+        <Router>
+          <AppContent />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 3000,
+              style: {
+                background: '#161B33',
+                color: '#FDF8F0',
+                borderRadius: '12px',
+                border: '1px solid rgba(246, 169, 60, 0.25)',
+              },
+              success: { iconTheme: { primary: '#1C9C88', secondary: '#FDF8F0' } },
+              error: { iconTheme: { primary: '#E1512E', secondary: '#FDF8F0' } },
+            }}
+          />
+        </Router>
+      </UserProvider>
+    </ThemeProvider>
   );
 }
 
